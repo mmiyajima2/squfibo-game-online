@@ -1,0 +1,220 @@
+.card-component {
+  display: inline-block;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 8px;
+}
+
+.card-size-small {
+  width: 60px;
+  height: 60px;
+}
+
+.card-size-medium {
+  width: 80px;
+  height: 80px;
+}
+
+.card-size-large {
+  width: 90px;
+  height: 90px;
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+
+.card-clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-selected {
+  transform: translateY(-8px) rotate(-3deg);
+  box-shadow:
+    0 8px 16px rgba(59, 130, 246, 0.4),
+    0 0 30px rgba(59, 130, 246, 0.8),
+    0 0 50px rgba(59, 130, 246, 0.5);
+  outline: 4px solid #3b82f6;
+  animation: selectedFloat 2s ease-in-out infinite;
+}
+
+.card-in-combo {
+  transform: translateY(-8px) rotate(-3deg);
+  box-shadow:
+    0 8px 16px rgba(34, 197, 94, 0.4),
+    0 0 30px rgba(34, 197, 94, 0.8),
+    0 0 50px rgba(34, 197, 94, 0.5);
+  outline: 4px solid #22c55e;
+  animation: comboFloat 2s ease-in-out infinite;
+}
+
+.card-highlighted {
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.6);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.3);
+  }
+}
+
+/* 選択されたカードの浮遊アニメーション */
+@keyframes selectedFloat {
+  0%, 100% {
+    transform: translateY(-8px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(-3deg);
+  }
+}
+
+/* 役形成カードの浮遊アニメーション（緑） */
+@keyframes comboFloat {
+  0%, 100% {
+    transform: translateY(-8px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(-3deg);
+  }
+}
+
+.card-delete-icon {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  z-index: 10;
+  padding: 0;
+}
+
+.card-delete-icon:hover {
+  background: #dc2626;
+  transform: scale(1.15);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.5);
+}
+
+.card-delete-icon:active {
+  transform: scale(1.05);
+}
+
+.card-with-delete {
+  margin: 8px;
+}
+
+.card-cancel-icon {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  z-index: 10;
+  padding: 0;
+}
+
+.card-cancel-icon:hover {
+  background: #2563eb;
+  transform: scale(1.15);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.5);
+}
+
+.card-cancel-icon:active {
+  transform: scale(1.05);
+}
+
+.card-with-cancel {
+  margin: 8px;
+}
+
+/* 選択されたカードのチェックマーク */
+.card-selected-indicator {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: 3px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  box-shadow:
+    0 2px 8px rgba(59, 130, 246, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.4);
+  z-index: 10;
+  animation: checkmarkPop 0.3s ease-out;
+}
+
+/* 役形成カードのチェックマーク（緑） */
+.card-combo-indicator {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: 3px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  box-shadow:
+    0 2px 8px rgba(34, 197, 94, 0.5),
+    0 0 20px rgba(34, 197, 94, 0.4);
+  z-index: 10;
+  animation: checkmarkPop 0.3s ease-out;
+}
+
+@keyframes checkmarkPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

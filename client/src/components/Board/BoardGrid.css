@@ -1,0 +1,22 @@
+.board-grid {
+  display: inline-block;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.board-row {
+  display: flex;
+  gap: 8px;
+}
+
+.board-row:not(:last-child) {
+  margin-bottom: 8px;
+}
+
+.board-grid-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}

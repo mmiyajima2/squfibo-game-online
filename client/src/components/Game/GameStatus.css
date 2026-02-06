@@ -1,0 +1,95 @@
+.game-status {
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.status-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.status-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.status-value.current-turn {
+  color: #3b82f6;
+  padding: 4px 12px;
+  background: #dbeafe;
+  border-radius: 6px;
+}
+
+.status-value.stars {
+  color: #f59e0b;
+}
+
+.status-value.deck {
+  color: #10b981;
+}
+
+.player-scores {
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  justify-content: space-around;
+}
+
+.player-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.player-name {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.player-stars {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.game-over {
+  padding: 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid #f59e0b;
+}
+
+.game-over-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 8px;
+}
+
+.game-over-result {
+  font-size: 16px;
+  font-weight: 600;
+  color: #b45309;
+}

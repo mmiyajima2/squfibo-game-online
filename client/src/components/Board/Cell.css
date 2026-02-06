@@ -1,0 +1,85 @@
+.cell {
+  width: 90px;
+  height: 90px;
+  background: #f8fafc;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.cell-clickable {
+  cursor: pointer;
+}
+
+.cell-clickable:hover {
+  background: #e0f2fe;
+  border-color: #3b82f6;
+}
+
+.cell-highlighted {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+.cell-selected {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #3b82f6;
+  border-width: 4px;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 40px rgba(59, 130, 246, 0.4);
+  transform: scale(1.05);
+  animation: cellSelectedPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes cellSelectedPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 40px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 1), 0 0 60px rgba(59, 130, 246, 0.6);
+  }
+}
+
+.cell-in-combo {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border-color: #22c55e;
+  border-width: 4px;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 40px rgba(34, 197, 94, 0.4);
+  transform: scale(1.05);
+  animation: cellComboPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes cellComboPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 40px rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(34, 197, 94, 1), 0 0 60px rgba(34, 197, 94, 0.6);
+  }
+}
+
+.cell-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-empty-indicator {
+  width: 24px;
+  height: 24px;
+  border: 2px dashed #94a3b8;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.cell-clickable:hover .cell-empty-indicator {
+  opacity: 1;
+  border-color: #3b82f6;
+  border-style: solid;
+}

@@ -1,0 +1,96 @@
+.commentary-area {
+  width: 100%;
+  background: #1e293b;
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.commentary-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.commentary-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: transparent;
+  border-radius: 3px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #cbd5e1;
+  transition: background 0.15s ease;
+}
+
+.commentary-message:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.commentary-message-latest {
+  color: #f1f5f9;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.commentary-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.commentary-text {
+  color: inherit;
+  flex: 1;
+}
+
+.commentary-type-combo .commentary-text {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.commentary-type-star .commentary-text {
+  color: #c084fc;
+  font-weight: 600;
+}
+
+.commentary-type-turn .commentary-text {
+  color: #34d399;
+  font-weight: 500;
+}
+
+.commentary-type-action .commentary-text {
+  color: #60a5fa;
+}
+
+.commentary-empty {
+  text-align: left;
+  color: #64748b;
+  font-size: 12px;
+  padding: 4px 8px;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .commentary-area {
+    font-size: 12px;
+  }
+
+  .commentary-message {
+    font-size: 12px;
+  }
+}

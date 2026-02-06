@@ -1,0 +1,97 @@
+.hand-area {
+  padding: 8px 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 80px;
+}
+
+.hand-area-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.hand-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 60px;
+  align-items: center;
+}
+
+.hand-card-wrapper {
+  transition: all 0.2s ease;
+}
+
+.hand-empty {
+  color: #94a3b8;
+  font-size: 14px;
+  font-style: italic;
+  padding: 20px;
+}
+
+.hand-count {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  text-align: right;
+}
+
+.hand-area-opponent .hand-cards {
+  opacity: 0.7;
+}
+
+.hand-area-opponent .hand-card-wrapper {
+  pointer-events: none;
+}
+
+.hand-area-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.hand-area-disabled .hand-cards {
+  filter: grayscale(0.3);
+}
+
+.hand-card-hidden {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  border: 2px solid #334155;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hand-card-hidden::before {
+  content: '?';
+  font-size: 28px;
+  font-weight: bold;
+  color: #e2e8f0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hand-card-hidden::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(255, 255, 255, 0.05) 10px,
+    rgba(255, 255, 255, 0.05) 20px
+  );
+  pointer-events: none;
+}

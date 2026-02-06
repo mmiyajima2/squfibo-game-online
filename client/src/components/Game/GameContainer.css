@@ -1,0 +1,475 @@
+.game-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  min-height: 100vh;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.reset-button {
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.reset-button:active {
+  transform: translateY(0);
+}
+
+.game-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.opponent-area,
+.player-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.game-middle {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.status-board-commentary-container {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.board-and-info-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.info-display-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.selected-card-info {
+  padding: 8px 16px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.selected-board-cards-info {
+  padding: 8px 16px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.error-message {
+  padding: 8px 16px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  animation: fadeIn 0.3s ease;
+}
+
+.board-full-notice {
+  padding: 8px 16px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid #f59e0b;
+}
+
+.no-hand-notice {
+  padding: 8px 16px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 2px solid #3b82f6;
+}
+
+.game-over-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.game-over-content {
+  background: white;
+  padding: 48px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 500px;
+  animation: slideUp 0.4s ease;
+  position: relative;
+}
+
+.game-over-content h2 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 24px 0;
+}
+
+.winner-text {
+  font-size: 28px;
+  font-weight: 600;
+  color: #f59e0b;
+  margin: 0 0 32px 0;
+}
+
+.final-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.score-value {
+  font-size: 24px;
+  color: #f59e0b;
+}
+
+.new-game-button {
+  padding: 16px 48px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.new-game-button:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+}
+
+.new-game-button:active {
+  transform: translateY(0);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* CPU Difficulty Selection Modal */
+.difficulty-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.difficulty-modal-content {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 500px;
+  animation: slideUp 0.4s ease;
+  position: relative;
+}
+
+.difficulty-modal-content h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 24px 0;
+}
+
+.setting-section {
+  margin-bottom: 24px;
+}
+
+.setting-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 12px 0;
+  text-align: left;
+}
+
+.difficulty-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.turn-order-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.difficulty-button {
+  padding: 12px 20px;
+  background: #3b82f6;
+  color: white;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.difficulty-button:hover:not(.disabled) {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+}
+
+.difficulty-button.selected {
+  border-color: #f59e0b;
+  background: #2563eb;
+}
+
+.difficulty-button.disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.difficulty-button.disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.difficulty-button .coming-soon {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 4px;
+}
+
+.turn-order-button {
+  flex: 1;
+  padding: 12px 20px;
+  background: #3b82f6;
+  color: white;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.turn-order-button:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+}
+
+.turn-order-button.selected {
+  border-color: #f59e0b;
+  background: #2563eb;
+}
+
+.difficulty-modal-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.difficulty-cancel-button {
+  padding: 10px 28px;
+  background: #e2e8f0;
+  color: #475569;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.difficulty-cancel-button:hover {
+  background: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.difficulty-start-button {
+  padding: 10px 28px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.difficulty-start-button:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.4);
+}
+
+@media (max-width: 1200px) {
+  .status-board-commentary-container {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .game-container {
+    padding: 12px;
+  }
+
+  .game-title {
+    font-size: 22px;
+  }
+}
+
+/* Modal Close Button (共通スタイル) */
+.modal-close-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.modal-close-button:hover {
+  color: #475569;
+  background: #f1f5f9;
+  transform: scale(1.1);
+}
+
+/* Show Rules Button */
+.show-rules-button {
+  padding: 12px 20px;
+  background: #fffef7;
+  color: #d4a017;
+  border: 2px solid #e0d5b7;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 280px;
+  max-width: 320px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.show-rules-button:hover {
+  background: #fff9e6;
+  border-color: #d4a017;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}

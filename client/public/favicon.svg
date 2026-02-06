@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#f8f8f8"/>
+
+  <!-- 赤の正方形 (左上) -->
+  <rect x="4" y="4" width="10" height="10" fill="#ef4444" rx="1"/>
+
+  <!-- 青の正方形 (右下) -->
+  <rect x="18" y="18" width="10" height="10" fill="#3b82f6" rx="1"/>
+
+  <!-- 小さな星のアクセント (右上) -->
+  <path d="M 24 8 L 25 10 L 27 10 L 25.5 11.5 L 26 13.5 L 24 12 L 22 13.5 L 22.5 11.5 L 21 10 L 23 10 Z" fill="#fbbf24"/>
+</svg>

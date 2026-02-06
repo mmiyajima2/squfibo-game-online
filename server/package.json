@@ -1,0 +1,34 @@
+{
+  "name": "squfibo-game-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.2",
+    "redis": "^4.7.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^24.10.1",
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "tsx": "^4.19.2",
+    "vitest": "^4.0.18",
+    "@vitest/ui": "^4.0.18"
+  }
+}

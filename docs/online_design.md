@@ -184,7 +184,7 @@ room:{roomId}:created_at   # 作成時刻
 
 - [x] 新リポジトリ `squfibo-game-online` 作成
 - [x] サーバーディレクトリ初期化（Express + Socket.io + Redis）
-- [ ] 共通型定義ファイルの作成
+- [x] 共通型定義ファイルの作成
 - [ ] Socket.ioイベント仕様書の作成
 - [ ] Redis接続テスト用スクリプト作成
 - [ ] クライアント側Socket接続フック実装

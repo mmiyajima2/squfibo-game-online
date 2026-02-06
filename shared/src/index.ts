@@ -9,3 +9,6 @@ export * from './types';
 
 // DTOのエクスポート
 export * from './dto';
+
+// Socket.IOイベント型のエクスポート
+export * from './events';

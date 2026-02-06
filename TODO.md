@@ -62,7 +62,6 @@
    - `Position.ts` - 盤面の位置（row, col）
    - `ComboType.ts` - 役の種類（THREE_CARDS, TRIPLE_MATCH）
    - `GameState.ts` - ゲーム状態（PLAYING, FINISHED）
-   - `CPUDifficulty.ts` - CPU難易度
 
 3. DTO定義（`shared/dto/`）
    - `CardDTO.ts` - カード情報
@@ -135,7 +134,6 @@
    - `Position.ts` - 位置情報 + バリデーション/比較関数
    - `ComboType.ts` - 役の種類 + 報酬計算関数
    - `GameState.ts` - ゲーム状態（enum: PLAYING, FINISHED）
-   - `CPUDifficulty.ts` - CPU難易度 + ラベル/バリデーション
    - `index.ts` - エクスポート
 
 3. **DTO定義** (`shared/src/dto/`)
@@ -163,13 +161,71 @@ npm run test         # テスト実行
 npm run lint         # ESLint実行
 ```
 
+#### ✅ フェーズ2完了（2026-02-06）
+
+**作成したファイル** (`shared/src/events/`):
+
+1. **EventNames.ts** - イベント名定数定義
+   - `ClientEventNames` - クライアント→サーバーのイベント名
+     - `game:create`, `game:join`, `game:place-card`, `game:claim-combo`, `game:discard-board-card`, `game:end-turn`, `game:leave`
+   - `ServerEventNames` - サーバー→クライアントのイベント名
+     - `game:created`, `game:joined`, `game:state-update`, `card:placed`, `combo:claimed`, `board-card:discarded`, `turn:ended`, `game:finished`, `player:joined`, `player:left`, `game:error`
+   - イベント名の型定義（`ClientEventName`, `ServerEventName`, `EventName`）
+
+2. **ClientEvents.ts** - クライアント→サーバーのイベント型
+   - `GameCreateRequest` - ゲーム作成リクエスト（プレイヤー名）
+   - `GameJoinRequest` - ゲーム参加リクエスト（ゲームID、プレイヤー名）
+   - `PlaceCardRequest` - カード配置リクエスト（ゲームID、手札インデックス、位置）
+   - `ClaimComboRequest` - 役の申告リクエスト（ゲームID、3つの位置）
+   - `DiscardBoardCardRequest` - ボードカード破棄リクエスト（ゲームID、位置）
+   - `EndTurnRequest` - ターン終了リクエスト（ゲームID）
+   - `LeaveGameRequest` - ゲーム退出リクエスト（ゲームID）
+   - `ClientEvents` - Socket.IO型マップ（コールバック付き）
+
+3. **ServerEvents.ts** - サーバー→クライアントのイベント型
+   - `GameCreatedEvent` - ゲーム作成成功（ゲームID、プレイヤーID、初期状態）
+   - `GameJoinedEvent` - ゲーム参加成功（ゲームID、プレイヤーID、現在の状態）
+   - `GameStateUpdateEvent` - ゲーム状態更新（ゲームID、新しい状態、更新理由）
+   - `CardPlacedEvent` - カード配置成功（ゲームID、プレイヤーID、位置、状態）
+   - `ComboClaimedEvent` - 役の申告成功（ゲームID、プレイヤーID、役、状態）
+   - `BoardCardDiscardedEvent` - ボードカード破棄成功（ゲームID、プレイヤーID、位置、状態）
+   - `TurnEndedEvent` - ターン終了（ゲームID、次のプレイヤーID、状態）
+   - `GameFinishedEvent` - ゲーム終了（ゲームID、勝者ID、最終状態）
+   - `PlayerJoinedEvent` - プレイヤー参加通知（ゲームID、プレイヤーID、名前）
+   - `PlayerLeftEvent` - プレイヤー退出通知（ゲームID、プレイヤーID、終了フラグ）
+   - `GameErrorEvent` - エラー通知（コード、メッセージ、詳細）
+   - `ServerEvents` - Socket.IO型マップ
+
+4. **index.ts** - イベント型の一括エクスポート
+
+5. **shared/src/index.ts** - メインエクスポートに追加
+   - `export * from './events'` を追加
+
+**ビルド結果**：
+- TypeScriptビルド成功
+- 型定義とイベント型が利用可能
+
+**特徴**：
+- 型安全なSocket.IO通信を実現
+- クライアント・サーバー双方で同じイベント型を参照可能
+- コールバック関数の型も定義済み
+- エラーハンドリング用の標準型を提供
+- ボード満杯時のカード破棄アクションをサポート
+
+**設計方針**：
+- カード配置のプレビュー/キャンセル、役のカード選択などはクライアント側のローカル状態で管理
+- 確定したアクションのみをサーバーに送信（通信量削減、実装簡素化）
+
 ### 次のステップ
 
-**フェーズ2**: Socket.IOイベント型の定義（未着手）
-- `shared/src/events/` ディレクトリの作成
-- イベント名定数の定義
-- クライアント→サーバーイベント型
-- サーバー→クライアントイベント型
+**フェーズ3**: Client側のリファクタリング（未着手）
+- Client側を共通型を使うように段階的に移行
+- 既存のドメインモデルは残し、DTOへの変換層を追加
+
+**フェーズ4**: Server側の実装（未着手）
+- 共通型を使ってサーバーロジックを実装
+- ゲームステート管理（Redis）
+- Socket.IOハンドラー実装
 
 
 # [x] サーバー用のディレクトリを初期化してほしい

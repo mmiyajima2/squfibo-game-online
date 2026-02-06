@@ -1,4 +1,3 @@
-import { CPUDifficulty } from '../types';
 import { HandDTO } from './HandDTO';
 
 /**
@@ -13,6 +12,4 @@ export interface PlayerDTO {
   stars: number;
   /** プレイヤーの手札 */
   hand: HandDTO;
-  /** CPU難易度（CPUプレイヤーの場合のみ） */
-  cpuDifficulty?: CPUDifficulty;
 }

@@ -1,4 +1,4 @@
-import { GameState, CPUDifficulty } from '../types';
+import { GameState } from '../types';
 import { BoardStateDTO } from './BoardStateDTO';
 import { PlayerDTO } from './PlayerDTO';
 import { PositionDTO } from './PositionDTO';
@@ -25,8 +25,6 @@ export interface GameStateDTO {
   totalStars: number;
   /** ゲームの状態（PLAYING or FINISHED） */
   gameState: GameState;
-  /** CPU難易度（CPU対戦の場合） */
-  cpuDifficulty?: CPUDifficulty;
   /** 最後に自動ドローが行われたプレイヤーID（null の場合は未実行） */
   lastAutoDrawnPlayerId: string | null;
   /** 最後に配置されたカードの位置（null の場合は未配置） */

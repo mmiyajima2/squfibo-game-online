@@ -9,10 +9,3 @@ export type { Position } from './Position';
 export { isValidPosition, positionEquals } from './Position';
 export { ComboType, getComboRewardStars, getComboDrawCount } from './ComboType';
 export { GameState } from './GameState';
-export type { CPUDifficulty } from './CPUDifficulty';
-export {
-  CPU_DIFFICULTY_LABELS,
-  CPU_DIFFICULTY_ENABLED,
-  VALID_CPU_DIFFICULTIES,
-  isValidCPUDifficulty,
-} from './CPUDifficulty';

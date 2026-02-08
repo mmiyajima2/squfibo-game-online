@@ -131,4 +131,46 @@ export class RoomService {
     const exists = await redis.exists(key);
     return exists === 1;
   }
+
+  /**
+   * 部屋に参加する（ゲスト専用）
+   * 注: ホストはcreateRoom時に自動的に部屋に参加するため、このメソッドはゲストのみが使用します
+   */
+  static async joinRoom(
+    roomId: string,
+    playerName: string,
+    socketId: string
+  ): Promise<{
+    playerId: string;
+    roomInfo: RoomInfo;
+  }> {
+    // 部屋の情報を取得
+    const roomInfo = await this.getRoomInfo(roomId);
+
+    if (!roomInfo) {
+      throw new Error('ROOM_NOT_FOUND');
+    }
+
+    // 部屋のステータスチェック
+    if (roomInfo.status !== 'WAITING') {
+      throw new Error('ROOM_NOT_AVAILABLE');
+    }
+
+    // ゲストとして参加
+    if (roomInfo.guestPlayerId !== null) {
+      throw new Error('ROOM_FULL');
+    }
+
+    const guestPlayerId = randomUUID();
+    roomInfo.guestPlayerId = guestPlayerId;
+    roomInfo.guestPlayerName = playerName;
+    roomInfo.guestSocketId = socketId;
+
+    await this.updateRoomInfo(roomId, roomInfo);
+
+    return {
+      playerId: guestPlayerId,
+      roomInfo,
+    };
+  }
 }

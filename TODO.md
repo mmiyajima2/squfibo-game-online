@@ -1,5 +1,54 @@
 # タスク
 
+## [✓] server側、「既存の対戦部屋に参加する」を実装してほしい
+- ✅ server側だけでよい
+- ✅ 今使っているserver側実装を試すテスト用ドライバを、全てのイベントで利用できるよう汎用的にしてほしい
+
+### 実装内容
+- `server/src/socket/eventTypes.ts` - `RoomJoinedPayload`型定義追加
+- `server/src/services/RoomService.ts` - `joinRoom`メソッド実装（ゲスト専用）
+  - 部屋の存在チェック
+  - ステータスチェック（WAITING状態のみ参加可能）
+  - 満室チェック（guestPlayerIdがnullかどうか）
+  - ゲスト情報の登録と部屋情報の更新
+- `server/src/socket/index.ts` - イベントハンドラー実装
+  - **createRoom**: ホストを自動的にSocket.IOルームに参加させる
+  - **joinRoom**: ゲスト専用のイベントハンドラー
+    - バリデーション（roomId、playerName）
+    - Socket.IOルームへの参加
+    - `roomJoined`イベントの送信
+    - `playerJoined`イベントのブロードキャスト（ホストに通知）
+    - エラーハンドリング（ROOM_NOT_FOUND、ROOM_FULL、ROOM_NOT_AVAILABLE）
+
+### 設計方針
+- **ホスト**: `createRoom`イベントで部屋を作成すると同時に自動的に部屋に参加（Socket.IOルームにjoin）
+- **ゲスト**: `joinRoom`イベントで明示的に部屋に参加する必要がある
+- この設計により、ホストは部屋作成後すぐにリアルタイム通信が可能
+
+### テストドライバの汎用化
+- `server/test-client/test-driver.html` - 汎用イベントテストドライバー（新規作成）
+  - イベント選択機能（createRoom、joinRoom、その他）
+  - イベント別の動的フォーム表示
+  - 汎用的な結果表示（JSON形式）
+  - リアルタイム接続状態表示
+  - レスポンシブデザイン
+- `server/test-client/test-join-room.js` - joinRoom専用テストスクリプト（新規作成）
+- `server/test-client/test-event-generic.js` - 汎用イベントテストスクリプト（新規作成）
+  - 任意のイベント名とペイロードJSONを受け取る
+  - 全てのSocket.IOイベントをテスト可能
+- `server/test-client/README.md` - ドキュメント更新
+  - 汎用テストドライバーの使い方
+  - テストシナリオ例
+  - トラブルシューティング
+
+### テスト項目
+- ✅ `joinRoom`イベントの送信
+- ✅ `roomJoined`イベントの受信
+- ✅ `playerJoined`イベントのブロードキャスト
+- ✅ 部屋の存在チェック
+- ✅ 満室チェック
+- ✅ 部屋情報の更新
+
 ## [x] server側、「新しい対戦部屋を作成する」について、疑問を解消しておきたい
 - 対戦部屋として発行されるホスト/ゲストURLは、フロント側の画面処理で部屋に入るかどうかを尋ねるボタンを用意する想定\
 そのようなユースケースを前提として動作は可能か？

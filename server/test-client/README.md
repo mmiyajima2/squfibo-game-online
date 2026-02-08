@@ -1,8 +1,34 @@
-# SquFibo 部屋作成テストクライアント
+# SquFibo テストクライアント
 
-このディレクトリには、Socket.IOの`createRoom`イベントをテストするためのシンプルなHTML+JSクライアントが含まれています。
+このディレクトリには、Socket.IOイベントをテストするための汎用的なテストツールが含まれています。
 
-## 使い方
+## 📁 ファイル構成
+
+### ブラウザベースのテストツール
+- **test-driver.html** - 汎用イベントテストドライバー（推奨）
+  - 全てのSocket.IOイベントをテストできる統合ツール
+  - イベント選択、パラメータ入力、結果表示を備えたGUI
+
+- **index.html** - 部屋作成専用テストツール（レガシー）
+  - `createRoom`イベント専用の旧バージョン
+  - 簡易的なテストには引き続き使用可能
+
+### Node.jsベースのテストスクリプト
+- **test-event-generic.js** - 汎用イベントテストスクリプト（推奨）
+  - どのイベントでもテストできる汎用CLIツール
+  - コマンドラインから任意のイベント+ペイロードを送信可能
+
+- **test-create-room.js** - 部屋作成専用スクリプト
+  - `createRoom`イベント専用
+
+- **test-join-room.js** - 部屋参加専用スクリプト
+  - `joinRoom`イベント専用
+
+- **test-validation.js** - バリデーションテスト用スクリプト
+
+## 🚀 使い方
+
+### 事前準備
 
 1. サーバーを起動します:
    ```bash
@@ -16,29 +42,95 @@
    # "PONG" が返ってくれば OK
    ```
 
-3. ブラウザで `index.html` を開きます:
-   - ファイルを直接ブラウザにドラッグ&ドロップ、または
-   - 簡易HTTPサーバーを使用する場合:
-     ```bash
-     cd server/test-client
-     npx http-server -p 8080
-     ```
-     その後、ブラウザで `http://localhost:8080` を開きます
+### 方法1: 汎用テストドライバー（推奨）
 
-4. テストクライアントで以下を実行:
-   - サーバーURLを確認（デフォルト: `http://localhost:3000`）
-   - プレイヤー名を入力（1〜20文字）
-   - 「部屋を作成」ボタンをクリック
+ブラウザで **test-driver.html** を開きます:
 
-5. 成功すると、以下の情報が表示されます:
-   - 部屋ID
-   - プレイヤーID
-   - ホストURL
-   - ゲストURL
-   - 有効期限
+```bash
+cd server/test-client
+npx http-server -p 8080
+```
 
-## 確認事項
+その後、ブラウザで `http://localhost:8080/test-driver.html` を開きます
 
+#### 使い方
+1. サーバーURLを確認（デフォルト: `http://localhost:3000`）
+2. テストするイベントを選択
+3. 必要なパラメータを入力
+4. 「イベントを実行」ボタンをクリック
+5. 結果がJSON形式で表示されます
+
+#### 対応イベント
+- ✅ **createRoom** - 新しい部屋を作成
+- ✅ **joinRoom** - 既存の部屋に参加
+- 🚧 **ready** - 準備完了（未実装）
+- 🚧 **removeCard** - カードを削除（未実装）
+- 🚧 **claimCombo** - コンボを宣言（未実装）
+- 🚧 **endTurn** - ターン終了（未実装）
+- 🚧 **leaveRoom** - 部屋から退出（未実装）
+
+### 方法2: Node.js汎用スクリプト
+
+任意のイベントをテストできます:
+
+```bash
+cd server/test-client
+
+# createRoomをテスト
+node test-event-generic.js createRoom '{"playerName":"ホスト"}'
+
+# joinRoomをテスト
+node test-event-generic.js joinRoom '{"roomId":"550e8400-e29b-41d4-a716-446655440000","playerName":"ゲスト"}'
+```
+
+### 方法3: イベント専用スクリプト
+
+#### 部屋を作成する
+```bash
+cd server/test-client
+node test-create-room.js
+```
+
+結果例:
+```json
+{
+  "roomId": "550e8400-e29b-41d4-a716-446655440000",
+  "playerId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "hostUrl": "http://localhost:5173/room/550e8400-e29b-41d4-a716-446655440000?role=host",
+  "guestUrl": "http://localhost:5173/room/550e8400-e29b-41d4-a716-446655440000?role=guest",
+  "expiresAt": "2024-01-01T12:13:00.000Z"
+}
+```
+
+#### 部屋に参加する
+```bash
+cd server/test-client
+node test-join-room.js <roomId> [playerName]
+```
+
+例:
+```bash
+# roomIdを指定して参加
+node test-join-room.js "550e8400-e29b-41d4-a716-446655440000" "ゲストプレイヤー"
+```
+
+結果例:
+```json
+{
+  "roomId": "550e8400-e29b-41d4-a716-446655440000",
+  "playerId": "8d1f8790-8536-51ef-a55c-f18fd2g01bf8",
+  "role": "guest",
+  "roomInfo": {
+    "hostPlayerName": "ホスト",
+    "guestPlayerName": "ゲストプレイヤー",
+    "status": "WAITING"
+  }
+}
+```
+
+## ✅ 確認事項
+
+### createRoomイベント
 - [x] Socket.IOサーバーへの接続
 - [x] `createRoom`イベントの送信
 - [x] `roomCreated`イベントの受信
@@ -46,7 +138,15 @@
 - [x] バリデーションエラーのハンドリング
 - [x] エラーレスポンスの表示
 
-## Redisデータの確認
+### joinRoomイベント
+- [x] `joinRoom`イベントの送信
+- [x] `roomJoined`イベントの受信
+- [x] `playerJoined`イベントのブロードキャスト
+- [x] 部屋の存在チェック
+- [x] 満室チェック
+- [x] 部屋情報の更新
+
+## 🔍 Redisデータの確認
 
 作成された部屋のデータはRedisに保存されます。以下のコマンドで確認できます:
 
@@ -57,11 +157,63 @@ redis-cli KEYS "room:*"
 # 特定の部屋の情報を取得
 redis-cli GET "room:{roomId}:info"
 
-# TTLを確認
+# 部屋情報を整形して表示
+redis-cli GET "room:{roomId}:info" | jq .
+
+# TTLを確認（残り有効時間）
 redis-cli TTL "room:{roomId}:info"
 ```
 
-## トラブルシューティング
+部屋情報の構造:
+```json
+{
+  "roomId": "550e8400-e29b-41d4-a716-446655440000",
+  "hostPlayerId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "hostPlayerName": "ホスト",
+  "guestPlayerId": "8d1f8790-8536-51ef-a55c-f18fd2g01bf8",
+  "guestPlayerName": "ゲストプレイヤー",
+  "hostSocketId": "abc123",
+  "guestSocketId": "def456",
+  "createdAt": "2024-01-01T12:00:00.000Z",
+  "expiresAt": "2024-01-01T12:13:00.000Z",
+  "status": "WAITING"
+}
+```
+
+## 🧪 テストシナリオ例
+
+### シナリオ1: 部屋作成から参加まで
+
+1. ターミナル1でホストが部屋を作成:
+   ```bash
+   node test-create-room.js
+   # roomIdをコピー
+   ```
+
+2. ターミナル2でゲストが参加:
+   ```bash
+   node test-join-room.js "<roomId>" "ゲスト"
+   ```
+
+3. 両方のターミナルで成功メッセージを確認
+
+### シナリオ2: エラーケースのテスト
+
+```bash
+# 存在しない部屋に参加
+node test-join-room.js "invalid-room-id" "ゲスト"
+# エラー: ROOM_NOT_FOUND
+
+# 満室の部屋に参加（3人目）
+node test-join-room.js "<full-room-id>" "3人目"
+# エラー: ROOM_FULL
+
+# プレイヤー名が長すぎる
+node test-event-generic.js createRoom '{"playerName":"これは21文字を超える非常に長いプレイヤー名です"}'
+# エラー: INVALID_PLAYER_NAME
+```
+
+## 🛠 トラブルシューティング
 
 ### サーバーに接続できない
 
@@ -77,8 +229,41 @@ redis-cli TTL "room:{roomId}:info"
   ```
 - Redis URLが正しいか確認してください（デフォルト: `redis://localhost:6379`）
 
-### 部屋が作成されない
+### イベントが失敗する
 
 - ブラウザのコンソール（開発者ツール）でエラーを確認してください
 - サーバーのログを確認してください
-- プレイヤー名が1〜20文字であることを確認してください
+- パラメータが正しい形式であることを確認してください
+
+### タイムアウトが発生する
+
+- ネットワーク接続を確認してください
+- サーバーがリクエストを処理しているか確認してください
+- タイムアウト値を増やす必要がある場合は、スクリプトの最後の`setTimeout`値を変更してください
+
+## 📝 カスタマイズ
+
+### サーバーURL変更
+
+環境変数で指定できます:
+
+```bash
+SERVER_URL=http://localhost:4000 node test-create-room.js
+```
+
+### タイムアウト時間変更
+
+各スクリプトの最後にある`setTimeout`の値を変更してください:
+
+```javascript
+setTimeout(() => {
+  console.error('\n⏰ Timeout - no response from server');
+  socket.disconnect();
+  process.exit(1);
+}, 10000); // ← この値を変更（ミリ秒）
+```
+
+## 🔗 関連ドキュメント
+
+- [Socket.IO Event Specification](../docs/design/socket-io-event-spec.md)
+- [Redis Data Structure](../docs/design/redis-data-structure.md)

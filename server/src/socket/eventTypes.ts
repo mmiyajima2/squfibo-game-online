@@ -49,6 +49,17 @@ export interface RoomCreatedPayload {
   expiresAt: string;
 }
 
+export interface RoomJoinedPayload {
+  roomId: string;
+  playerId: string;
+  role: 'host' | 'guest';
+  roomInfo: {
+    hostPlayerName: string;
+    guestPlayerName: string | null;
+    status: string;
+  };
+}
+
 export interface ErrorPayload {
   code: string;
   message: string;

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SquFibo Event Test Driver</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+      font-size: 14px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      font-family: 'Courier New', monospace;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.info {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      border-left: 4px solid #1976d2;
+    }
+
+    .status.success {
+      background-color: #e8f5e9;
+      color: #388e3c;
+      border-left: 4px solid #388e3c;
+    }
+
+    .status.error {
+      background-color: #ffebee;
+      color: #c62828;
+      border-left: 4px solid #c62828;
+    }
+
+    .result {
+      background-color: #f9f9f9;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 20px;
+      display: none;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .result-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .result-content {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .event-forms > div {
+      display: none;
+    }
+
+    .event-forms > div.active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+
+    .badge.connected {
+      background-color: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .badge.disconnected {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #888;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎮 SquFibo Event Test Driver</h1>
+      <p>Socket.IOイベントの統合テストツール</p>
+    </div>
+
+    <div class="content">
+      <!-- 接続設定 -->
+      <div class="section">
+        <div class="section-title">
+          接続設定
+          <span id="connectionBadge" class="badge disconnected">未接続</span>
+        </div>
+        <div class="form-group">
+          <label for="serverUrl">サーバーURL:</label>
+          <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+        </div>
+      </div>
+
+      <!-- イベント選択 -->
+      <div class="section">
+        <div class="section-title">イベント選択</div>
+        <div class="form-group">
+          <label for="eventType">テストするイベント:</label>
+          <select id="eventType">
+            <option value="createRoom">createRoom - 新しい部屋を作成</option>
+            <option value="joinRoom">joinRoom - 既存の部屋に参加</option>
+            <option value="ready">ready - 準備完了（未実装）</option>
+            <option value="removeCard">removeCard - カードを削除（未実装）</option>
+            <option value="claimCombo">claimCombo - コンボを宣言（未実装）</option>
+            <option value="endTurn">endTurn - ターン終了（未実装）</option>
+            <option value="leaveRoom">leaveRoom - 部屋から退出（未実装）</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- イベント別フォーム -->
+      <div class="section">
+        <div class="section-title">パラメータ</div>
+        <div class="event-forms">
+          <!-- createRoom -->
+          <div id="form-createRoom" class="active">
+            <div class="form-group">
+              <label for="createRoom-playerName">プレイヤー名:</label>
+              <input type="text" id="createRoom-playerName" placeholder="テストプレイヤー" maxlength="20">
+              <div class="help-text">1〜20文字で入力してください</div>
+            </div>
+          </div>
+
+          <!-- joinRoom -->
+          <div id="form-joinRoom">
+            <div class="form-group">
+              <label for="joinRoom-roomId">部屋ID:</label>
+              <input type="text" id="joinRoom-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">参加する部屋のUUIDを入力してください</div>
+            </div>
+            <div class="form-group">
+              <label for="joinRoom-playerName">プレイヤー名:</label>
+              <input type="text" id="joinRoom-playerName" placeholder="ゲストプレイヤー" maxlength="20">
+              <div class="help-text">1〜20文字で入力してください</div>
+            </div>
+          </div>
+
+          <!-- ready -->
+          <div id="form-ready">
+            <div class="form-group">
+              <label for="ready-roomId">部屋ID:</label>
+              <input type="text" id="ready-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            </div>
+          </div>
+
+          <!-- その他のイベントフォーム（未実装） -->
+          <div id="form-removeCard">
+            <p style="color: #888;">このイベントは未実装です</p>
+          </div>
+          <div id="form-claimCombo">
+            <p style="color: #888;">このイベントは未実装です</p>
+          </div>
+          <div id="form-endTurn">
+            <p style="color: #888;">このイベントは未実装です</p>
+          </div>
+          <div id="form-leaveRoom">
+            <p style="color: #888;">このイベントは未実装です</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 実行ボタン -->
+      <div class="section">
+        <button id="executeBtn" disabled>イベントを実行</button>
+      </div>
+
+      <!-- ステータス表示 -->
+      <div id="status" class="status"></div>
+
+      <!-- 結果表示 -->
+      <div id="result" class="result">
+        <div class="result-title">📋 実行結果</div>
+        <div class="result-content" id="resultContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO クライアントライブラリ -->
+  <script src="https://cdn.socket.io/4.8.2/socket.io.min.js"></script>
+
+  <script>
+    let socket = null;
+    let isConnected = false;
+
+    const elements = {
+      serverUrl: document.getElementById('serverUrl'),
+      eventType: document.getElementById('eventType'),
+      executeBtn: document.getElementById('executeBtn'),
+      status: document.getElementById('status'),
+      result: document.getElementById('result'),
+      resultContent: document.getElementById('resultContent'),
+      connectionBadge: document.getElementById('connectionBadge'),
+    };
+
+    // ステータス表示
+    function showStatus(message, type = 'info') {
+      elements.status.textContent = message;
+      elements.status.className = `status ${type} show`;
+    }
+
+    // 結果表示
+    function showResult(data) {
+      elements.resultContent.textContent = JSON.stringify(data, null, 2);
+      elements.result.classList.add('show');
+    }
+
+    // 接続状態更新
+    function updateConnectionStatus(connected) {
+      isConnected = connected;
+      if (connected) {
+        elements.connectionBadge.textContent = '接続済み';
+        elements.connectionBadge.className = 'badge connected';
+        elements.executeBtn.disabled = false;
+      } else {
+        elements.connectionBadge.textContent = '未接続';
+        elements.connectionBadge.className = 'badge disconnected';
+        elements.executeBtn.disabled = true;
+      }
+    }
+
+    // Socket.IO接続
+    function connectSocket(serverUrl) {
+      if (socket) {
+        socket.disconnect();
+      }
+
+      showStatus('サーバーに接続中...', 'info');
+
+      socket = io(serverUrl, {
+        transports: ['websocket', 'polling']
+      });
+
+      // 接続イベント
+      socket.on('connect', () => {
+        console.log('✅ Connected to server, Socket ID:', socket.id);
+        showStatus(`サーバーに接続しました (Socket ID: ${socket.id})`, 'success');
+        updateConnectionStatus(true);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('🔌 Disconnected from server');
+        showStatus('サーバーから切断されました', 'error');
+        updateConnectionStatus(false);
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('❌ Connection error:', error);
+        showStatus(`接続エラー: ${error.message}`, 'error');
+        updateConnectionStatus(false);
+      });
+
+      // 汎用エラーハンドラ
+      socket.on('error', (error) => {
+        console.error('❌ Server error:', error);
+        showStatus(`エラー: ${error.message} (${error.code})`, 'error');
+        showResult(error);
+      });
+
+      // イベント別レスポンスハンドラ
+      socket.on('roomCreated', (data) => {
+        console.log('🎉 roomCreated:', data);
+        showStatus('部屋を作成しました！', 'success');
+        showResult(data);
+      });
+
+      socket.on('roomJoined', (data) => {
+        console.log('🎉 roomJoined:', data);
+        showStatus('部屋に参加しました！', 'success');
+        showResult(data);
+      });
+
+      socket.on('playerJoined', (data) => {
+        console.log('👤 playerJoined:', data);
+        showStatus('プレイヤーが参加しました', 'info');
+      });
+    }
+
+    // イベントフォーム切り替え
+    function switchEventForm(eventType) {
+      document.querySelectorAll('.event-forms > div').forEach(form => {
+        form.classList.remove('active');
+      });
+      const targetForm = document.getElementById(`form-${eventType}`);
+      if (targetForm) {
+        targetForm.classList.add('active');
+      }
+    }
+
+    // イベント実行
+    function executeEvent() {
+      const eventType = elements.eventType.value;
+      elements.result.classList.remove('show');
+      showStatus('イベントを実行中...', 'info');
+
+      let payload = {};
+
+      // イベント別のペイロード作成
+      switch (eventType) {
+        case 'createRoom':
+          payload = {
+            playerName: document.getElementById('createRoom-playerName').value.trim()
+          };
+          if (!payload.playerName) {
+            showStatus('プレイヤー名を入力してください', 'error');
+            return;
+          }
+          break;
+
+        case 'joinRoom':
+          payload = {
+            roomId: document.getElementById('joinRoom-roomId').value.trim(),
+            playerName: document.getElementById('joinRoom-playerName').value.trim()
+          };
+          if (!payload.roomId) {
+            showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (!payload.playerName) {
+            showStatus('プレイヤー名を入力してください', 'error');
+            return;
+          }
+          break;
+
+        case 'ready':
+          payload = {
+            roomId: document.getElementById('ready-roomId').value.trim()
+          };
+          if (!payload.roomId) {
+            showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          break;
+
+        default:
+          showStatus('このイベントは未実装です', 'error');
+          return;
+      }
+
+      console.log(`📤 Emitting ${eventType}:`, payload);
+
+      // イベント送信
+      socket.emit(eventType, payload, (response) => {
+        console.log(`📨 Response from ${eventType}:`, response);
+
+        if (response && response.code) {
+          // エラーレスポンス
+          showStatus(`エラー: ${response.message} (${response.code})`, 'error');
+          showResult(response);
+        } else if (response) {
+          // 成功レスポンス
+          showStatus('イベントが正常に実行されました！', 'success');
+          showResult(response);
+        }
+      });
+    }
+
+    // イベントリスナー
+    elements.serverUrl.addEventListener('change', (e) => {
+      connectSocket(e.target.value);
+    });
+
+    elements.eventType.addEventListener('change', (e) => {
+      switchEventForm(e.target.value);
+    });
+
+    elements.executeBtn.addEventListener('click', executeEvent);
+
+    // 初期接続
+    connectSocket(elements.serverUrl.value);
+  </script>
+</body>
+</html>

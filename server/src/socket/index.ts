@@ -8,6 +8,8 @@ import {
   RoomJoinedPayload,
   ReadyPayload,
   GameStartPayload,
+  RemoveCardPayload,
+  CardRemovedPayload,
   ErrorPayload,
 } from './eventTypes.js';
 
@@ -31,6 +33,11 @@ export function initializeSocketHandlers(io: Server): void {
     // 準備完了イベント
     socket.on('ready', async (payload: ReadyPayload, callback) => {
       await handleReady(io, socket, payload, callback);
+    });
+
+    // カード除去イベント（盤面満杯時）
+    socket.on('removeCard', async (payload: RemoveCardPayload, callback) => {
+      await handleRemoveCard(io, socket, payload, callback);
     });
 
     // 切断イベント
@@ -341,6 +348,191 @@ async function handleReady(
     const errorPayload: ErrorPayload = {
       code: errorCode,
       message: errorMessage,
+      details: error instanceof Error ? error.message : String(error),
+    };
+
+    callback?.(errorPayload);
+    socket.emit('error', errorPayload);
+  }
+}
+
+/**
+ * removeCardイベントハンドラー
+ * 盤面が満杯の状態でターンを開始する際、1枚のカードを除去します
+ */
+async function handleRemoveCard(
+  io: Server,
+  socket: Socket,
+  payload: RemoveCardPayload,
+  callback?: (response: CardRemovedPayload | ErrorPayload) => void
+): Promise<void> {
+  try {
+    // バリデーション: roomId
+    if (!payload.roomId || typeof payload.roomId !== 'string') {
+      const error: ErrorPayload = {
+        code: 'INVALID_ROOM_ID',
+        message: '部屋IDが不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // バリデーション: position
+    if (
+      !payload.position ||
+      typeof payload.position.row !== 'number' ||
+      typeof payload.position.col !== 'number'
+    ) {
+      const error: ErrorPayload = {
+        code: 'INVALID_POSITION',
+        message: '位置情報が不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // ゲーム状態を取得
+    const gameState = await GameService.getGameState(payload.roomId);
+
+    if (!gameState) {
+      const error: ErrorPayload = {
+        code: 'ROOM_NOT_FOUND',
+        message: '部屋が見つかりません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // 部屋情報を取得してプレイヤーを特定
+    const roomInfo = await RoomService.getRoomInfo(payload.roomId);
+    if (!roomInfo) {
+      const error: ErrorPayload = {
+        code: 'ROOM_NOT_FOUND',
+        message: '部屋が見つかりません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // socket.idからplayerIdを特定
+    let playerId: string | null = null;
+    if (roomInfo.hostSocketId === socket.id) {
+      playerId = roomInfo.hostPlayerId;
+    } else if (roomInfo.guestSocketId === socket.id) {
+      playerId = roomInfo.guestPlayerId;
+    }
+
+    if (!playerId) {
+      const error: ErrorPayload = {
+        code: 'NOT_IN_ROOM',
+        message: 'プレイヤーが部屋に参加していません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // 現在のプレイヤーのインデックスを取得
+    const currentPlayerIndex = gameState.players.findIndex((p: { id: string }) => p.id === playerId);
+
+    // 自分のターンかどうかをチェック
+    if (gameState.currentPlayerIndex !== currentPlayerIndex) {
+      const error: ErrorPayload = {
+        code: 'NOT_YOUR_TURN',
+        message: '自分のターンではありません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // 盤面が満杯かどうかをチェック
+    if (!GameService.isBoardFull(gameState.board)) {
+      const error: ErrorPayload = {
+        code: 'BOARD_NOT_FULL',
+        message: '盤面が満杯ではありません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // 位置が有効かどうかをチェック
+    const { row, col } = payload.position;
+    if (!GameService.isValidPosition(row, col)) {
+      const error: ErrorPayload = {
+        code: 'INVALID_POSITION',
+        message: '位置が盤面外です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // 指定位置にカードがあるかチェック
+    const card = GameService.getCardAt(gameState.board, row, col);
+    if (!card) {
+      const error: ErrorPayload = {
+        code: 'NO_CARD_AT_POSITION',
+        message: '指定位置にカードがありません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // カードを除去
+    const removedCard = GameService.removeCardFromBoard(gameState, row, col);
+
+    if (!removedCard) {
+      const error: ErrorPayload = {
+        code: 'SERVER_ERROR',
+        message: 'カードの除去に失敗しました',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // ゲーム状態を保存
+    await GameService.saveGameState(payload.roomId, gameState);
+
+    console.log(
+      `Card removed at (${row}, ${col}) by player ${playerId} in room ${payload.roomId}`
+    );
+
+    // レスポンスを作成
+    const response: CardRemovedPayload = {
+      playerId,
+      position: { row, col },
+      card: {
+        id: removedCard.id,
+        value: removedCard.value,
+        color: removedCard.color,
+      },
+    };
+
+    // callbackでレスポンスを返す
+    callback?.(response);
+
+    // 部屋の全員にcardRemovedイベントを送信
+    io.to(payload.roomId).emit('cardRemoved', response);
+
+    // ゲーム状態更新イベントを送信
+    io.to(payload.roomId).emit('gameStateUpdate', {
+      gameState,
+      updateType: 'card_removed',
+    });
+  } catch (error) {
+    console.error('Error handling removeCard event:', error);
+
+    const errorPayload: ErrorPayload = {
+      code: 'SERVER_ERROR',
+      message: 'サーバーエラーが発生しました',
       details: error instanceof Error ? error.message : String(error),
     };
 

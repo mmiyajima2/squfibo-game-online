@@ -1,5 +1,24 @@
 # タスク
 
+## [✓] server側で「盤面満杯時にカードを除去する（ターン開始前）」イベントを実装してほしい
+- ✅ server側だけでよい
+- ✅ ./shared/ にあるソースを参考にすること
+
+### 実装内容
+- `server/src/socket/eventTypes.ts` - `CardRemovedPayload`型定義追加
+- `server/src/services/GameService.ts` - ボード操作メソッド追加
+  - `isBoardFull`: 盤面が満杯かチェック
+  - `isValidPosition`: 位置が有効かチェック
+  - `getCardAt`: 指定位置のカードを取得
+  - `removeCardFromBoard`: 盤面からカードを除去
+- `server/src/socket/index.ts` - `removeCard`イベントハンドラー実装
+  - バリデーション（roomId、position、ターンプレイヤー、盤面満杯チェック）
+  - カード除去処理
+  - `cardRemoved`イベントと`gameStateUpdate`イベントの送信
+- `server/test-client/test-driver.html` - `removeCard`イベントのテスト対応
+  - フォーム追加（部屋ID、行、列）
+  - イベントリスナー追加（cardRemoved、gameStateUpdate）
+
 ## [✓] 仕様書 `./docs/socketio_events.md` について「プレイヤーが準備完了を通知する」の仕様を相談したい
 - ✅ 準備完了のイベントをserver側で受け取ってゲームが開始される理解である
 - ✅ この時、どちらが先攻かをパラメータとして送る必要はないだろうか？

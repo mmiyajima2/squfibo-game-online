@@ -68,6 +68,16 @@ export interface GameStartPayload {
   yourPlayerIndex: 0 | 1;
 }
 
+export interface CardRemovedPayload {
+  playerId: string;
+  position: { row: number; col: number };
+  card: {
+    id: string;
+    value: number;
+    color: string;
+  };
+}
+
 export interface ErrorPayload {
   code: string;
   message: string;

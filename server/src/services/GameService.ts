@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto';
-import type {
-  GameStateDTO,
-  PlayerDTO,
-  CardDTO,
-  BoardStateDTO,
-  HandDTO,
+import {
+  GameState,
   CardColor,
-  CardValueType,
+  type GameStateDTO,
+  type PlayerDTO,
+  type CardDTO,
+  type BoardStateDTO,
+  type CardValueType,
 } from '@squfibo/shared';
 import { getRedisClient } from './redisClient.js';
 
@@ -19,13 +19,13 @@ export class GameService {
   /**
    * 初期ゲーム状態を作成
    *
-   * @param roomId 部屋ID
+   * @param _roomId 部屋ID（将来の拡張用）
    * @param player1Id プレイヤー1のID
    * @param player2Id プレイヤー2のID
    * @returns 初期ゲーム状態
    */
   static createInitialGameState(
-    roomId: string,
+    _roomId: string,
     player1Id: string,
     player2Id: string
   ): GameStateDTO {
@@ -78,7 +78,7 @@ export class GameService {
       deckCount: deck.length,
       discardPileCount: 0,
       totalStars: 21,
-      gameState: 'PLAYING',
+      gameState: GameState.PLAYING,
       lastAutoDrawnPlayerId: null,
       lastPlacedPosition: null,
     };
@@ -104,7 +104,7 @@ export class GameService {
       { value: 9, count: 9 },
       { value: 16, count: 4 },
     ];
-    const colors: CardColor[] = ['RED', 'BLUE'];
+    const colors: CardColor[] = [CardColor.RED, CardColor.BLUE];
 
     for (const { value, count } of cardConfig) {
       for (const color of colors) {
@@ -165,5 +165,60 @@ export class GameService {
     }
 
     return JSON.parse(data) as GameStateDTO;
+  }
+
+  /**
+   * 盤面が満杯かどうかをチェック
+   */
+  static isBoardFull(board: BoardStateDTO): boolean {
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        if (board.cells[row][col] === null) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * 位置が有効かどうかをチェック
+   */
+  static isValidPosition(row: number, col: number): boolean {
+    return row >= 0 && row < 3 && col >= 0 && col < 3;
+  }
+
+  /**
+   * 指定位置のカードを取得
+   */
+  static getCardAt(board: BoardStateDTO, row: number, col: number): CardDTO | null {
+    if (!this.isValidPosition(row, col)) {
+      return null;
+    }
+    return board.cells[row][col];
+  }
+
+  /**
+   * 盤面からカードを除去
+   */
+  static removeCardFromBoard(
+    gameState: GameStateDTO,
+    row: number,
+    col: number
+  ): CardDTO | null {
+    if (!this.isValidPosition(row, col)) {
+      return null;
+    }
+
+    const card = gameState.board.cells[row][col];
+    if (!card) {
+      return null;
+    }
+
+    // カードを除去して捨て札に追加
+    gameState.board.cells[row][col] = null;
+    gameState.discardPileCount += 1;
+
+    return card;
   }
 }

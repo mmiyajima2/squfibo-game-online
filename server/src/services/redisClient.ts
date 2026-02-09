@@ -23,9 +23,9 @@ export async function initializeRedis(): Promise<RedisClientType> {
   });
 
   await client.connect();
-  redisClient = client;
+  redisClient = client as RedisClientType;
 
-  return client;
+  return client as RedisClientType;
 }
 
 /**

@@ -252,7 +252,7 @@
             <option value="createRoom">createRoom - 新しい部屋を作成</option>
             <option value="joinRoom">joinRoom - 既存の部屋に参加</option>
             <option value="ready">ready - 準備完了</option>
-            <option value="removeCard">removeCard - カードを削除（未実装）</option>
+            <option value="removeCard">removeCard - カードを削除（盤面満杯時）</option>
             <option value="claimCombo">claimCombo - コンボを宣言（未実装）</option>
             <option value="endTurn">endTurn - ターン終了（未実装）</option>
             <option value="leaveRoom">leaveRoom - 部屋から退出（未実装）</option>
@@ -295,10 +295,25 @@
             </div>
           </div>
 
-          <!-- その他のイベントフォーム（未実装） -->
+          <!-- removeCard -->
           <div id="form-removeCard">
-            <p style="color: #888;">このイベントは未実装です</p>
+            <div class="form-group">
+              <label for="removeCard-roomId">部屋ID:</label>
+              <input type="text" id="removeCard-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label for="removeCard-row">行 (0-2):</label>
+              <input type="number" id="removeCard-row" min="0" max="2" value="0">
+              <div class="help-text">0: 上段、1: 中段、2: 下段</div>
+            </div>
+            <div class="form-group">
+              <label for="removeCard-col">列 (0-2):</label>
+              <input type="number" id="removeCard-col" min="0" max="2" value="0">
+              <div class="help-text">0: 左、1: 中央、2: 右</div>
+            </div>
           </div>
+
+          <!-- その他のイベントフォーム（未実装） -->
           <div id="form-claimCombo">
             <p style="color: #888;">このイベントは未実装です</p>
           </div>
@@ -431,6 +446,17 @@
         showStatus('ゲームが開始されました！', 'success');
         showResult(data);
       });
+
+      socket.on('cardRemoved', (data) => {
+        console.log('🗑️ cardRemoved:', data);
+        showStatus('カードが除去されました', 'info');
+        showResult(data);
+      });
+
+      socket.on('gameStateUpdate', (data) => {
+        console.log('🔄 gameStateUpdate:', data);
+        showStatus(`ゲーム状態が更新されました (${data.updateType})`, 'info');
+      });
     }
 
     // イベントフォーム切り替え
@@ -485,6 +511,24 @@
           };
           if (!payload.roomId) {
             showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          break;
+
+        case 'removeCard':
+          payload = {
+            roomId: document.getElementById('removeCard-roomId').value.trim(),
+            position: {
+              row: parseInt(document.getElementById('removeCard-row').value, 10),
+              col: parseInt(document.getElementById('removeCard-col').value, 10)
+            }
+          };
+          if (!payload.roomId) {
+            showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (isNaN(payload.position.row) || isNaN(payload.position.col)) {
+            showStatus('行と列を正しく入力してください', 'error');
             return;
           }
           break;

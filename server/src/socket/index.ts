@@ -12,13 +12,14 @@ import {
   CardRemovedPayload,
   ErrorPayload,
 } from './eventTypes.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Socket.IOイベントハンドラーを初期化
  */
 export function initializeSocketHandlers(io: Server): void {
   io.on('connection', (socket) => {
-    console.log(`Client connected: ${socket.id}`);
+    logger.info({ socketId: socket.id }, 'Client connected');
 
     // 部屋作成イベント
     socket.on('createRoom', async (payload: CreateRoomPayload, callback) => {
@@ -42,7 +43,7 @@ export function initializeSocketHandlers(io: Server): void {
 
     // 切断イベント
     socket.on('disconnect', () => {
-      console.log(`Client disconnected: ${socket.id}`);
+      logger.info({ socketId: socket.id }, 'Client disconnected');
       // TODO: 部屋からの退出処理を追加
     });
   });
@@ -85,7 +86,7 @@ async function handleCreateRoom(
     // 部屋を作成
     const result = await RoomService.createRoom(playerName, socket.id, baseUrl);
 
-    console.log(`Room created: ${result.roomId} by ${playerName}`);
+    logger.info({ roomId: result.roomId, playerName, playerId: result.playerId }, 'Room created');
 
     // ホストを Socket.IO ルームに参加させる
     socket.join(result.roomId);
@@ -102,7 +103,7 @@ async function handleCreateRoom(
     callback?.(response);
     socket.emit('roomCreated', response);
   } catch (error) {
-    console.error('Error creating room:', error);
+    logger.error({ err: error, socketId: socket.id }, 'Error creating room');
 
     const errorPayload: ErrorPayload = {
       code: 'SERVER_ERROR',
@@ -165,7 +166,7 @@ async function handleJoinRoom(
       socket.id
     );
 
-    console.log(`Player ${playerName} joined room ${payload.roomId} as guest`);
+    logger.info({ roomId: payload.roomId, playerName, playerId: result.playerId, role: 'guest' }, 'Player joined room');
 
     // Socket.IOのルームに参加
     socket.join(payload.roomId);
@@ -192,7 +193,7 @@ async function handleJoinRoom(
       role: 'guest',
     });
   } catch (error) {
-    console.error('Error joining room:', error);
+    logger.error({ err: error, roomId: payload.roomId, socketId: socket.id }, 'Error joining room');
 
     let errorCode = 'SERVER_ERROR';
     let errorMessage = 'サーバーエラーが発生しました';
@@ -282,11 +283,11 @@ async function handleReady(
     // プレイヤーを準備完了にする
     const result = await RoomService.markPlayerReady(payload.roomId, playerId);
 
-    console.log(`Player ${playerId} is ready in room ${payload.roomId}`);
+    logger.info({ roomId: payload.roomId, playerId }, 'Player is ready');
 
     // 両プレイヤーが準備完了した場合、ゲームを開始
     if (result.bothReady) {
-      console.log(`Both players ready in room ${payload.roomId}, starting game...`);
+      logger.info({ roomId: payload.roomId }, 'Both players ready, starting game');
 
       // ゲーム状態を初期化
       const gameState = GameService.createInitialGameState(
@@ -322,10 +323,10 @@ async function handleReady(
       const isHost = playerId === result.roomInfo.hostPlayerId;
       callback?.(isHost ? hostPayload : guestPayload);
 
-      console.log(`Game started in room ${payload.roomId}`);
+      logger.info({ roomId: payload.roomId, currentPlayerIndex: gameState.currentPlayerIndex }, 'Game started');
     }
   } catch (error) {
-    console.error('Error handling ready event:', error);
+    logger.error({ err: error, roomId: payload.roomId, socketId: socket.id }, 'Error handling ready event');
 
     let errorCode = 'SERVER_ERROR';
     let errorMessage = 'サーバーエラーが発生しました';
@@ -501,8 +502,9 @@ async function handleRemoveCard(
     // ゲーム状態を保存
     await GameService.saveGameState(payload.roomId, gameState);
 
-    console.log(
-      `Card removed at (${row}, ${col}) by player ${playerId} in room ${payload.roomId}`
+    logger.info(
+      { roomId: payload.roomId, playerId, position: { row, col }, cardId: removedCard.id },
+      'Card removed from board'
     );
 
     // レスポンスを作成
@@ -528,7 +530,7 @@ async function handleRemoveCard(
       updateType: 'card_removed',
     });
   } catch (error) {
-    console.error('Error handling removeCard event:', error);
+    logger.error({ err: error, roomId: payload.roomId, socketId: socket.id }, 'Error handling removeCard event');
 
     const errorPayload: ErrorPayload = {
       code: 'SERVER_ERROR',

@@ -12,6 +12,8 @@ export interface RoomInfo {
   guestPlayerName: string | null;
   hostSocketId: string;
   guestSocketId: string | null;
+  hostReady: boolean;
+  guestReady: boolean;
   createdAt: string;
   expiresAt: string;
   status: 'WAITING' | 'READY' | 'PLAYING' | 'FINISHED';
@@ -51,6 +53,8 @@ export class RoomService {
       guestPlayerName: null,
       hostSocketId,
       guestSocketId: null,
+      hostReady: false,
+      guestReady: false,
       createdAt,
       expiresAt,
       status: 'WAITING',
@@ -172,5 +176,70 @@ export class RoomService {
       playerId: guestPlayerId,
       roomInfo,
     };
+  }
+
+  /**
+   * プレイヤーを準備完了にする
+   *
+   * @param roomId 部屋ID
+   * @param playerId プレイヤーID
+   * @returns 両プレイヤーが準備完了した場合true
+   */
+  static async markPlayerReady(
+    roomId: string,
+    playerId: string
+  ): Promise<{
+    bothReady: boolean;
+    roomInfo: RoomInfo;
+  }> {
+    const roomInfo = await this.getRoomInfo(roomId);
+
+    if (!roomInfo) {
+      throw new Error('ROOM_NOT_FOUND');
+    }
+
+    // プレイヤーが部屋に参加しているかチェック
+    const isHost = roomInfo.hostPlayerId === playerId;
+    const isGuest = roomInfo.guestPlayerId === playerId;
+
+    if (!isHost && !isGuest) {
+      throw new Error('NOT_IN_ROOM');
+    }
+
+    // 準備完了フラグを設定
+    if (isHost) {
+      roomInfo.hostReady = true;
+    } else {
+      roomInfo.guestReady = true;
+    }
+
+    // 両プレイヤーが準備完了かチェック
+    const bothReady = roomInfo.hostReady && roomInfo.guestReady;
+
+    // 両プレイヤーが準備完了した場合、ステータスをREADYに更新
+    if (bothReady) {
+      roomInfo.status = 'READY';
+    }
+
+    await this.updateRoomInfo(roomId, roomInfo);
+
+    return {
+      bothReady,
+      roomInfo,
+    };
+  }
+
+  /**
+   * 部屋のステータスをPLAYINGに更新
+   */
+  static async setRoomPlaying(roomId: string): Promise<void> {
+    const roomInfo = await this.getRoomInfo(roomId);
+
+    if (!roomInfo) {
+      throw new Error('ROOM_NOT_FOUND');
+    }
+
+    roomInfo.status = 'PLAYING';
+    await this.updateRoomInfo(roomId, roomInfo);
   }
 }

@@ -1,10 +1,13 @@
 import { Server, Socket } from 'socket.io';
 import { RoomService } from '../services/RoomService.js';
+import { GameService } from '../services/GameService.js';
 import {
   CreateRoomPayload,
   RoomCreatedPayload,
   JoinRoomPayload,
   RoomJoinedPayload,
+  ReadyPayload,
+  GameStartPayload,
   ErrorPayload,
 } from './eventTypes.js';
 
@@ -23,6 +26,11 @@ export function initializeSocketHandlers(io: Server): void {
     // 部屋参加イベント
     socket.on('joinRoom', async (payload: JoinRoomPayload, callback) => {
       await handleJoinRoom(socket, payload, callback);
+    });
+
+    // 準備完了イベント
+    socket.on('ready', async (payload: ReadyPayload, callback) => {
+      await handleReady(io, socket, payload, callback);
     });
 
     // 切断イベント
@@ -195,6 +203,135 @@ async function handleJoinRoom(
         case 'ROOM_NOT_AVAILABLE':
           errorCode = 'ROOM_NOT_AVAILABLE';
           errorMessage = 'この部屋は参加できません';
+          break;
+        default:
+          errorMessage = error.message;
+      }
+    }
+
+    const errorPayload: ErrorPayload = {
+      code: errorCode,
+      message: errorMessage,
+      details: error instanceof Error ? error.message : String(error),
+    };
+
+    callback?.(errorPayload);
+    socket.emit('error', errorPayload);
+  }
+}
+
+/**
+ * readyイベントハンドラー
+ */
+async function handleReady(
+  io: Server,
+  socket: Socket,
+  payload: ReadyPayload,
+  callback?: (response: GameStartPayload | ErrorPayload) => void
+): Promise<void> {
+  try {
+    // バリデーション: roomId
+    if (!payload.roomId || typeof payload.roomId !== 'string') {
+      const error: ErrorPayload = {
+        code: 'INVALID_ROOM_ID',
+        message: '部屋IDが不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // 部屋の情報を取得
+    const roomInfo = await RoomService.getRoomInfo(payload.roomId);
+
+    if (!roomInfo) {
+      const error: ErrorPayload = {
+        code: 'ROOM_NOT_FOUND',
+        message: '部屋が見つかりません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // socket.idからplayerIdを特定
+    let playerId: string | null = null;
+    if (roomInfo.hostSocketId === socket.id) {
+      playerId = roomInfo.hostPlayerId;
+    } else if (roomInfo.guestSocketId === socket.id) {
+      playerId = roomInfo.guestPlayerId;
+    }
+
+    if (!playerId) {
+      const error: ErrorPayload = {
+        code: 'NOT_IN_ROOM',
+        message: 'プレイヤーが部屋に参加していません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // プレイヤーを準備完了にする
+    const result = await RoomService.markPlayerReady(payload.roomId, playerId);
+
+    console.log(`Player ${playerId} is ready in room ${payload.roomId}`);
+
+    // 両プレイヤーが準備完了した場合、ゲームを開始
+    if (result.bothReady) {
+      console.log(`Both players ready in room ${payload.roomId}, starting game...`);
+
+      // ゲーム状態を初期化
+      const gameState = GameService.createInitialGameState(
+        payload.roomId,
+        result.roomInfo.hostPlayerId,
+        result.roomInfo.guestPlayerId!
+      );
+
+      // ゲーム状態をRedisに保存
+      await GameService.saveGameState(payload.roomId, gameState);
+
+      // 部屋のステータスをPLAYINGに更新
+      await RoomService.setRoomPlaying(payload.roomId);
+
+      // 各プレイヤーに個別のgameStartイベントを送信
+      // ホストに送信
+      const hostPayload: GameStartPayload = {
+        gameState,
+        yourPlayerId: result.roomInfo.hostPlayerId,
+        yourPlayerIndex: gameState.players[0].id === result.roomInfo.hostPlayerId ? 0 : 1,
+      };
+      io.to(result.roomInfo.hostSocketId).emit('gameStart', hostPayload);
+
+      // ゲストに送信
+      const guestPayload: GameStartPayload = {
+        gameState,
+        yourPlayerId: result.roomInfo.guestPlayerId!,
+        yourPlayerIndex: gameState.players[0].id === result.roomInfo.guestPlayerId ? 0 : 1,
+      };
+      io.to(result.roomInfo.guestSocketId!).emit('gameStart', guestPayload);
+
+      // callbackにもレスポンスを返す（自分のpayload）
+      const isHost = playerId === result.roomInfo.hostPlayerId;
+      callback?.(isHost ? hostPayload : guestPayload);
+
+      console.log(`Game started in room ${payload.roomId}`);
+    }
+  } catch (error) {
+    console.error('Error handling ready event:', error);
+
+    let errorCode = 'SERVER_ERROR';
+    let errorMessage = 'サーバーエラーが発生しました';
+
+    if (error instanceof Error) {
+      switch (error.message) {
+        case 'ROOM_NOT_FOUND':
+          errorCode = 'ROOM_NOT_FOUND';
+          errorMessage = '部屋が見つかりません';
+          break;
+        case 'NOT_IN_ROOM':
+          errorCode = 'NOT_IN_ROOM';
+          errorMessage = 'プレイヤーが部屋に参加していません';
           break;
         default:
           errorMessage = error.message;

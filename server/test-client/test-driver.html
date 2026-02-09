@@ -251,7 +251,7 @@
           <select id="eventType">
             <option value="createRoom">createRoom - 新しい部屋を作成</option>
             <option value="joinRoom">joinRoom - 既存の部屋に参加</option>
-            <option value="ready">ready - 準備完了（未実装）</option>
+            <option value="ready">ready - 準備完了</option>
             <option value="removeCard">removeCard - カードを削除（未実装）</option>
             <option value="claimCombo">claimCombo - コンボを宣言（未実装）</option>
             <option value="endTurn">endTurn - ターン終了（未実装）</option>
@@ -424,6 +424,12 @@
       socket.on('playerJoined', (data) => {
         console.log('👤 playerJoined:', data);
         showStatus('プレイヤーが参加しました', 'info');
+      });
+
+      socket.on('gameStart', (data) => {
+        console.log('🎮 gameStart:', data);
+        showStatus('ゲームが開始されました！', 'success');
+        showResult(data);
       });
     }
 

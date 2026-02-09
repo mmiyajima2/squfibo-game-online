@@ -2,6 +2,8 @@
  * Socket.IOイベントの型定義
  */
 
+import type { GameStateDTO } from '@squfibo/shared';
+
 // クライアント → サーバー
 
 export interface CreateRoomPayload {
@@ -58,6 +60,12 @@ export interface RoomJoinedPayload {
     guestPlayerName: string | null;
     status: string;
   };
+}
+
+export interface GameStartPayload {
+  gameState: GameStateDTO;
+  yourPlayerId: string;
+  yourPlayerIndex: 0 | 1;
 }
 
 export interface ErrorPayload {

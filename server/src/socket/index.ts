@@ -16,6 +16,7 @@ import {
   TurnEndedPayload,
   LeaveRoomPayload,
   PlayerLeftPayload,
+  PlayerDisconnectedPayload,
   TurnChangedPayload,
   GameStateUpdatePayload,
   GameFinishedPayload,
@@ -23,6 +24,26 @@ import {
 } from './eventTypes.js';
 import { logger } from '../utils/logger.js';
 import { getComboRewardStars, getComboDrawCount, GameState } from '@squfibo/shared';
+
+/**
+ * 切断情報を管理する型
+ */
+interface DisconnectionInfo {
+  playerId: string;
+  roomId: string;
+  reconnectDeadline: Date;
+  timeoutId: NodeJS.Timeout;
+}
+
+/**
+ * Player ID から切断情報へのマップ（再接続待機中のプレイヤー管理）
+ */
+const disconnectedPlayers = new Map<string, DisconnectionInfo>();
+
+/**
+ * 再接続待機時間（ミリ秒）
+ */
+const RECONNECT_TIMEOUT_MS = 30000; // 30秒
 
 /**
  * payloadのplayerIdが、指定された部屋に参加しているかを検証する
@@ -79,9 +100,8 @@ export function initializeSocketHandlers(io: Server): void {
     });
 
     // 切断イベント
-    socket.on('disconnect', () => {
-      logger.info({ socketId: socket.id }, 'Client disconnected');
-      // TODO: 部屋からの退出処理を追加
+    socket.on('disconnect', async () => {
+      await handleDisconnect(io, socket);
     });
   });
 }
@@ -127,6 +147,10 @@ async function handleCreateRoom(
 
     // ホストを Socket.IO ルームに参加させる
     socket.join(result.roomId);
+
+    // socket.dataにplayerIdとroomIdを保存（切断時の処理に必要）
+    socket.data.playerId = result.playerId;
+    socket.data.roomId = result.roomId;
 
     // レスポンスを送信
     const response: RoomCreatedPayload = {
@@ -207,6 +231,10 @@ async function handleJoinRoom(
 
     // Socket.IOのルームに参加
     socket.join(payload.roomId);
+
+    // socket.dataにplayerIdとroomIdを保存（切断時の処理に必要）
+    socket.data.playerId = result.playerId;
+    socket.data.roomId = payload.roomId;
 
     // レスポンスを送信
     const response: RoomJoinedPayload = {
@@ -1168,7 +1196,7 @@ async function handleEndTurn(
  * 対戦部屋から退出します
  */
 async function handleLeaveRoom(
-  io: Server,
+  _io: Server,
   socket: Socket,
   payload: LeaveRoomPayload,
   callback?: (response: { success: boolean } | ErrorPayload) => void
@@ -1269,5 +1297,157 @@ async function handleLeaveRoom(
 
     callback?.(errorPayload);
     socket.emit('error', errorPayload);
+  }
+}
+
+/**
+ * disconnect イベントハンドラー
+ * プレイヤーが切断された際、30秒以内の再接続を待機する
+ */
+async function handleDisconnect(io: Server, socket: Socket): Promise<void> {
+  const socketId = socket.id;
+  const playerId = socket.data.playerId as string | undefined;
+  const roomId = socket.data.roomId as string | undefined;
+
+  logger.info({ socketId, playerId, roomId }, 'Client disconnected');
+
+  // socket.dataに情報がない場合は、部屋に参加していないため何もしない
+  if (!playerId || !roomId) {
+    logger.info({ socketId }, 'Disconnected client was not in any room');
+    return;
+  }
+
+  try {
+    // 部屋情報を取得
+    const roomInfo = await RoomService.getRoomInfo(roomId);
+    if (!roomInfo) {
+      logger.warn({ socketId, playerId, roomId }, 'Room not found on disconnect');
+      return;
+    }
+
+    // ゲーム中の場合のみ再接続待機処理を実行
+    if (roomInfo.status !== 'PLAYING') {
+      logger.info(
+        { socketId, playerId, roomId, status: roomInfo.status },
+        'Disconnected but game is not in PLAYING state, no reconnect handling'
+      );
+      return;
+    }
+
+    // 相手プレイヤーのIDを特定
+    const opponentPlayerId =
+      playerId === roomInfo.hostPlayerId ? roomInfo.guestPlayerId : roomInfo.hostPlayerId;
+
+    if (!opponentPlayerId) {
+      logger.warn({ socketId, playerId, roomId }, 'No opponent found on disconnect');
+      return;
+    }
+
+    // 再接続期限を30秒後に設定
+    const reconnectDeadline = new Date(Date.now() + RECONNECT_TIMEOUT_MS);
+
+    logger.info(
+      { socketId, playerId, roomId, reconnectDeadline: reconnectDeadline.toISOString() },
+      'Player disconnected during game, waiting for reconnect'
+    );
+
+    // 相手プレイヤーに playerDisconnected イベントを送信
+    const disconnectedPayload: PlayerDisconnectedPayload = {
+      playerId,
+      reconnectDeadline: reconnectDeadline.toISOString(),
+    };
+    io.to(roomId).emit('playerDisconnected', disconnectedPayload);
+
+    // 30秒後のタイムアウト処理を設定
+    const timeoutId = setTimeout(async () => {
+      await handleReconnectTimeout(io, socketId, playerId, roomId, opponentPlayerId);
+    }, RECONNECT_TIMEOUT_MS);
+
+    // 切断情報を保存（playerIdをキーにする）
+    disconnectedPlayers.set(playerId, {
+      playerId,
+      roomId,
+      reconnectDeadline,
+      timeoutId,
+    });
+  } catch (error) {
+    logger.error(
+      { err: error, socketId, playerId, roomId },
+      'Error handling disconnect event'
+    );
+  }
+}
+
+/**
+ * 再接続タイムアウト処理
+ * 30秒以内に再接続しなかった場合、対戦相手の勝利として扱う
+ */
+async function handleReconnectTimeout(
+  io: Server,
+  socketId: string,
+  disconnectedPlayerId: string,
+  roomId: string,
+  opponentPlayerId: string
+): Promise<void> {
+  logger.info(
+    { socketId, disconnectedPlayerId, roomId, opponentPlayerId },
+    'Reconnect timeout - opponent wins'
+  );
+
+  // 切断情報を削除（playerIdをキーにする）
+  disconnectedPlayers.delete(disconnectedPlayerId);
+
+  try {
+    // 部屋情報を取得
+    const roomInfo = await RoomService.getRoomInfo(roomId);
+    if (!roomInfo) {
+      logger.warn({ roomId }, 'Room not found on reconnect timeout');
+      return;
+    }
+
+    // ゲーム状態を取得
+    const gameState = await GameService.getGameState(roomId);
+    if (!gameState) {
+      logger.warn({ roomId }, 'Game state not found on reconnect timeout');
+      return;
+    }
+
+    // 対戦相手のプレイヤー情報を取得
+    const opponentPlayerIndex = gameState.players.findIndex(p => p.id === opponentPlayerId);
+    if (opponentPlayerIndex === -1) {
+      logger.error({ roomId, opponentPlayerId }, 'Opponent player not found in game state');
+      return;
+    }
+
+    const opponentPlayer = gameState.players[opponentPlayerIndex];
+    const opponentPlayerName =
+      opponentPlayerId === roomInfo.hostPlayerId
+        ? roomInfo.hostPlayerName
+        : roomInfo.guestPlayerName || 'Unknown';
+
+    // ゲーム終了ペイロードを作成
+    const finishedPayload: GameFinishedPayload = {
+      gameState,
+      winner: {
+        playerId: opponentPlayerId,
+        playerName: opponentPlayerName,
+        stars: opponentPlayer.stars,
+      },
+      isDraw: false,
+      reason: 'DECK_EMPTY', // 切断による勝利も DECK_EMPTY として扱う（適切なreasonがないため）
+    };
+
+    // 部屋の全メンバーに gameFinished イベントを送信
+    io.to(roomId).emit('gameFinished', finishedPayload);
+
+    logger.info(
+      { roomId, winnerId: opponentPlayerId, disconnectedPlayerId },
+      'Game finished due to reconnect timeout'
+    );
+  } catch (error) {
+    logger.error(
+      { err: error, socketId, disconnectedPlayerId, roomId },
+      'Error handling reconnect timeout'
+    );
   }
 }

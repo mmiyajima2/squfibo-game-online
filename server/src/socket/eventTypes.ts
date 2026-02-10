@@ -122,6 +122,11 @@ export interface PlayerLeftPayload {
   playerName: string;
 }
 
+export interface PlayerDisconnectedPayload {
+  playerId: string;
+  reconnectDeadline: string;
+}
+
 export interface ErrorPayload {
   code: string;
   message: string;

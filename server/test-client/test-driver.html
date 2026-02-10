@@ -241,6 +241,15 @@
           <label for="serverUrl">サーバーURL:</label>
           <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
         </div>
+        <div class="form-group">
+          <button id="connectBtn" style="background: #4caf50;">接続 / 再接続</button>
+        </div>
+        <div id="socketIdDisplay" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px; font-size: 12px; font-family: monospace; display: none;">
+          <strong>現在のSocket ID:</strong> <span id="currentSocketId"></span>
+        </div>
+        <div class="help-text" style="margin-top: 10px; color: #ff5722; font-weight: bold;">
+          ⚠️ 重要: createRoom/joinRoomの後、同じタブで操作を続けてください。ページをリロードしたり、別のタブで操作すると接続が変わります。
+        </div>
       </div>
 
       <!-- イベント選択 -->
@@ -292,6 +301,12 @@
             <div class="form-group">
               <label for="ready-roomId">部屋ID:</label>
               <input type="text" id="ready-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
+            </div>
+            <div class="form-group">
+              <label for="ready-playerId">プレイヤーID:</label>
+              <input type="text" id="ready-playerId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
             </div>
           </div>
 
@@ -300,6 +315,12 @@
             <div class="form-group">
               <label for="removeCard-roomId">部屋ID:</label>
               <input type="text" id="removeCard-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
+            </div>
+            <div class="form-group">
+              <label for="removeCard-playerId">プレイヤーID:</label>
+              <input type="text" id="removeCard-playerId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
             </div>
             <div class="form-group">
               <label for="removeCard-row">行 (0-2):</label>
@@ -318,6 +339,12 @@
             <div class="form-group">
               <label for="claimCombo-roomId">部屋ID:</label>
               <input type="text" id="claimCombo-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
+            </div>
+            <div class="form-group">
+              <label for="claimCombo-playerId">プレイヤーID:</label>
+              <input type="text" id="claimCombo-playerId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
             </div>
             <div class="form-group">
               <label for="claimCombo-cardId">カードID（nullの場合は空欄）:</label>
@@ -344,6 +371,12 @@
             <div class="form-group">
               <label for="endTurn-roomId">部屋ID:</label>
               <input type="text" id="endTurn-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
+            </div>
+            <div class="form-group">
+              <label for="endTurn-playerId">プレイヤーID:</label>
+              <input type="text" id="endTurn-playerId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
             </div>
             <div class="form-group">
               <label for="endTurn-cardId">カードID（nullの場合は空欄）:</label>
@@ -365,6 +398,12 @@
             <div class="form-group">
               <label for="leaveRoom-roomId">部屋ID:</label>
               <input type="text" id="leaveRoom-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
+            </div>
+            <div class="form-group">
+              <label for="leaveRoom-playerId">プレイヤーID:</label>
+              <input type="text" id="leaveRoom-playerId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <div class="help-text">createRoom/joinRoomで自動入力されます</div>
             </div>
           </div>
 
@@ -403,15 +442,20 @@
   <script>
     let socket = null;
     let isConnected = false;
+    let currentPlayerId = null;  // 現在のプレイヤーID（createRoom/joinRoomで取得）
+    let currentRoomId = null;    // 現在の部屋ID
 
     const elements = {
       serverUrl: document.getElementById('serverUrl'),
       eventType: document.getElementById('eventType'),
       executeBtn: document.getElementById('executeBtn'),
+      connectBtn: document.getElementById('connectBtn'),
       status: document.getElementById('status'),
       result: document.getElementById('result'),
       resultContent: document.getElementById('resultContent'),
       connectionBadge: document.getElementById('connectionBadge'),
+      socketIdDisplay: document.getElementById('socketIdDisplay'),
+      currentSocketId: document.getElementById('currentSocketId'),
     };
 
     // ステータス表示
@@ -433,10 +477,14 @@
         elements.connectionBadge.textContent = '接続済み';
         elements.connectionBadge.className = 'badge connected';
         elements.executeBtn.disabled = false;
+        elements.socketIdDisplay.style.display = 'block';
+        elements.currentSocketId.textContent = socket.id;
       } else {
         elements.connectionBadge.textContent = '未接続';
         elements.connectionBadge.className = 'badge disconnected';
         elements.executeBtn.disabled = true;
+        elements.socketIdDisplay.style.display = 'none';
+        elements.currentSocketId.textContent = '';
       }
     }
 
@@ -459,10 +507,21 @@
         updateConnectionStatus(true);
       });
 
-      socket.on('disconnect', () => {
-        console.log('🔌 Disconnected from server');
-        showStatus('サーバーから切断されました', 'error');
+      socket.on('disconnect', (reason) => {
+        console.log('🔌 Disconnected from server, reason:', reason);
+        showStatus(`サーバーから切断されました (理由: ${reason})`, 'error');
         updateConnectionStatus(false);
+      });
+
+      socket.on('reconnect', (attemptNumber) => {
+        console.log('🔄 Reconnected to server, attempt:', attemptNumber, 'New Socket ID:', socket.id);
+        showStatus(`⚠️ サーバーに再接続されました！Socket IDが変わりました: ${socket.id}`, 'error');
+        updateConnectionStatus(true);
+      });
+
+      socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log('🔄 Reconnecting...', attemptNumber);
+        showStatus(`再接続中... (試行 ${attemptNumber})`, 'info');
       });
 
       socket.on('connect_error', (error) => {
@@ -481,13 +540,47 @@
       // イベント別レスポンスハンドラ
       socket.on('roomCreated', (data) => {
         console.log('🎉 roomCreated:', data);
-        showStatus('部屋を作成しました！', 'success');
+        // playerIdとroomIdを保存
+        currentPlayerId = data.playerId;
+        currentRoomId = data.roomId;
+        console.log('💾 Saved playerId:', currentPlayerId, 'roomId:', currentRoomId);
+
+        // 全てのフォームにroomIdとplayerIdを自動入力
+        document.getElementById('ready-roomId').value = currentRoomId;
+        document.getElementById('ready-playerId').value = currentPlayerId;
+        document.getElementById('removeCard-roomId').value = currentRoomId;
+        document.getElementById('removeCard-playerId').value = currentPlayerId;
+        document.getElementById('claimCombo-roomId').value = currentRoomId;
+        document.getElementById('claimCombo-playerId').value = currentPlayerId;
+        document.getElementById('endTurn-roomId').value = currentRoomId;
+        document.getElementById('endTurn-playerId').value = currentPlayerId;
+        document.getElementById('leaveRoom-roomId').value = currentRoomId;
+        document.getElementById('leaveRoom-playerId').value = currentPlayerId;
+
+        showStatus(`部屋を作成しました！ (Player ID: ${currentPlayerId})`, 'success');
         showResult(data);
       });
 
       socket.on('roomJoined', (data) => {
         console.log('🎉 roomJoined:', data);
-        showStatus('部屋に参加しました！', 'success');
+        // playerIdとroomIdを保存
+        currentPlayerId = data.playerId;
+        currentRoomId = data.roomId;
+        console.log('💾 Saved playerId:', currentPlayerId, 'roomId:', currentRoomId);
+
+        // 全てのフォームにroomIdとplayerIdを自動入力
+        document.getElementById('ready-roomId').value = currentRoomId;
+        document.getElementById('ready-playerId').value = currentPlayerId;
+        document.getElementById('removeCard-roomId').value = currentRoomId;
+        document.getElementById('removeCard-playerId').value = currentPlayerId;
+        document.getElementById('claimCombo-roomId').value = currentRoomId;
+        document.getElementById('claimCombo-playerId').value = currentPlayerId;
+        document.getElementById('endTurn-roomId').value = currentRoomId;
+        document.getElementById('endTurn-playerId').value = currentPlayerId;
+        document.getElementById('leaveRoom-roomId').value = currentRoomId;
+        document.getElementById('leaveRoom-playerId').value = currentPlayerId;
+
+        showStatus(`部屋に参加しました！ (Player ID: ${currentPlayerId})`, 'success');
         showResult(data);
       });
 
@@ -596,10 +689,15 @@
 
         case 'ready':
           payload = {
-            roomId: document.getElementById('ready-roomId').value.trim()
+            roomId: document.getElementById('ready-roomId').value.trim(),
+            playerId: document.getElementById('ready-playerId').value.trim()
           };
           if (!payload.roomId) {
             showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (!payload.playerId) {
+            showStatus('プレイヤーIDを入力してください', 'error');
             return;
           }
           break;
@@ -607,6 +705,7 @@
         case 'removeCard':
           payload = {
             roomId: document.getElementById('removeCard-roomId').value.trim(),
+            playerId: document.getElementById('removeCard-playerId').value.trim(),
             position: {
               row: parseInt(document.getElementById('removeCard-row').value, 10),
               col: parseInt(document.getElementById('removeCard-col').value, 10)
@@ -614,6 +713,10 @@
           };
           if (!payload.roomId) {
             showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (!payload.playerId) {
+            showStatus('プレイヤーIDを入力してください', 'error');
             return;
           }
           if (isNaN(payload.position.row) || isNaN(payload.position.col)) {
@@ -640,6 +743,7 @@
 
           payload = {
             roomId: document.getElementById('claimCombo-roomId').value.trim(),
+            playerId: document.getElementById('claimCombo-playerId').value.trim(),
             cardId: cardIdInput === '' ? null : cardIdInput,
             position: {
               row: parseInt(document.getElementById('claimCombo-row').value, 10),
@@ -649,6 +753,10 @@
           };
           if (!payload.roomId) {
             showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (!payload.playerId) {
+            showStatus('プレイヤーIDを入力してください', 'error');
             return;
           }
           if (isNaN(payload.position.row) || isNaN(payload.position.col)) {
@@ -661,6 +769,7 @@
           const endTurnCardIdInput = document.getElementById('endTurn-cardId').value.trim();
           payload = {
             roomId: document.getElementById('endTurn-roomId').value.trim(),
+            playerId: document.getElementById('endTurn-playerId').value.trim(),
             cardId: endTurnCardIdInput === '' ? null : endTurnCardIdInput,
             position: {
               row: parseInt(document.getElementById('endTurn-row').value, 10),
@@ -671,6 +780,10 @@
             showStatus('部屋IDを入力してください', 'error');
             return;
           }
+          if (!payload.playerId) {
+            showStatus('プレイヤーIDを入力してください', 'error');
+            return;
+          }
           if (isNaN(payload.position.row) || isNaN(payload.position.col)) {
             showStatus('行と列を正しく入力してください', 'error');
             return;
@@ -679,10 +792,15 @@
 
         case 'leaveRoom':
           payload = {
-            roomId: document.getElementById('leaveRoom-roomId').value.trim()
+            roomId: document.getElementById('leaveRoom-roomId').value.trim(),
+            playerId: document.getElementById('leaveRoom-playerId').value.trim()
           };
           if (!payload.roomId) {
             showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (!payload.playerId) {
+            showStatus('プレイヤーIDを入力してください', 'error');
             return;
           }
           break;
@@ -693,10 +811,12 @@
       }
 
       console.log(`📤 Emitting ${eventType}:`, payload);
+      console.log(`🔌 Current Socket ID:`, socket.id);
 
       // イベント送信
       socket.emit(eventType, payload, (response) => {
         console.log(`📨 Response from ${eventType}:`, response);
+        console.log(`🔌 Socket ID after response:`, socket.id);
 
         if (response && response.code) {
           // エラーレスポンス
@@ -711,8 +831,8 @@
     }
 
     // イベントリスナー
-    elements.serverUrl.addEventListener('change', (e) => {
-      connectSocket(e.target.value);
+    elements.connectBtn.addEventListener('click', () => {
+      connectSocket(elements.serverUrl.value);
     });
 
     elements.eventType.addEventListener('change', (e) => {
@@ -721,7 +841,7 @@
 
     elements.executeBtn.addEventListener('click', executeEvent);
 
-    // 初期接続
+    // 初期接続（ページロード時に自動接続）
     connectSocket(elements.serverUrl.value);
   </script>
 </body>

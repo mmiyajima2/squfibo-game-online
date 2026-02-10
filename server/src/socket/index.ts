@@ -25,6 +25,18 @@ import { logger } from '../utils/logger.js';
 import { getComboRewardStars, getComboDrawCount, GameState } from '@squfibo/shared';
 
 /**
+ * payloadのplayerIdが、指定された部屋に参加しているかを検証する
+ */
+async function validatePlayerInRoom(playerId: string, roomId: string): Promise<boolean> {
+  const roomInfo = await RoomService.getRoomInfo(roomId);
+  if (!roomInfo) {
+    return false;
+  }
+
+  return roomInfo.hostPlayerId === playerId || roomInfo.guestPlayerId === playerId;
+}
+
+/**
  * Socket.IOイベントハンドラーを初期化
  */
 export function initializeSocketHandlers(io: Server): void {
@@ -274,28 +286,20 @@ async function handleReady(
       return;
     }
 
-    // 部屋の情報を取得
-    const roomInfo = await RoomService.getRoomInfo(payload.roomId);
-
-    if (!roomInfo) {
+    // バリデーション: playerId
+    if (!payload.playerId || typeof payload.playerId !== 'string') {
       const error: ErrorPayload = {
-        code: 'ROOM_NOT_FOUND',
-        message: '部屋が見つかりません',
+        code: 'INVALID_PLAYER_ID',
+        message: 'プレイヤーIDが不正です',
       };
       callback?.(error);
       socket.emit('error', error);
       return;
     }
 
-    // socket.idからplayerIdを特定
-    let playerId: string | null = null;
-    if (roomInfo.hostSocketId === socket.id) {
-      playerId = roomInfo.hostPlayerId;
-    } else if (roomInfo.guestSocketId === socket.id) {
-      playerId = roomInfo.guestPlayerId;
-    }
-
-    if (!playerId) {
+    // プレイヤーが部屋に参加しているか検証
+    const isPlayerInRoom = await validatePlayerInRoom(payload.playerId, payload.roomId);
+    if (!isPlayerInRoom) {
       const error: ErrorPayload = {
         code: 'NOT_IN_ROOM',
         message: 'プレイヤーが部屋に参加していません',
@@ -306,9 +310,9 @@ async function handleReady(
     }
 
     // プレイヤーを準備完了にする
-    const result = await RoomService.markPlayerReady(payload.roomId, playerId);
+    const result = await RoomService.markPlayerReady(payload.roomId, payload.playerId);
 
-    logger.info({ roomId: payload.roomId, playerId }, 'Player is ready');
+    logger.info({ roomId: payload.roomId, playerId: payload.playerId }, 'Player is ready');
 
     // 両プレイヤーが準備完了した場合、ゲームを開始
     if (result.bothReady) {
@@ -349,7 +353,7 @@ async function handleReady(
       io.to(result.roomInfo.guestSocketId!).emit('gameStart', guestPayload);
 
       // callbackにもレスポンスを返す（自分のpayload）
-      const isHost = playerId === result.roomInfo.hostPlayerId;
+      const isHost = payload.playerId === result.roomInfo.hostPlayerId;
       callback?.(isHost ? hostPayload : guestPayload);
 
       logger.info({ roomId: payload.roomId, currentPlayerIndex: gameState.currentPlayerIndex }, 'Game started');
@@ -408,6 +412,17 @@ async function handleRemoveCard(
       return;
     }
 
+    // バリデーション: playerId
+    if (!payload.playerId || typeof payload.playerId !== 'string') {
+      const error: ErrorPayload = {
+        code: 'INVALID_PLAYER_ID',
+        message: 'プレイヤーIDが不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
     // バリデーション: position
     if (
       !payload.position ||
@@ -417,6 +432,18 @@ async function handleRemoveCard(
       const error: ErrorPayload = {
         code: 'INVALID_POSITION',
         message: '位置情報が不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // プレイヤーが部屋に参加しているか検証
+    const isPlayerInRoom = await validatePlayerInRoom(payload.playerId, payload.roomId);
+    if (!isPlayerInRoom) {
+      const error: ErrorPayload = {
+        code: 'NOT_IN_ROOM',
+        message: 'プレイヤーが部屋に参加していません',
       };
       callback?.(error);
       socket.emit('error', error);
@@ -436,38 +463,8 @@ async function handleRemoveCard(
       return;
     }
 
-    // 部屋情報を取得してプレイヤーを特定
-    const roomInfo = await RoomService.getRoomInfo(payload.roomId);
-    if (!roomInfo) {
-      const error: ErrorPayload = {
-        code: 'ROOM_NOT_FOUND',
-        message: '部屋が見つかりません',
-      };
-      callback?.(error);
-      socket.emit('error', error);
-      return;
-    }
-
-    // socket.idからplayerIdを特定
-    let playerId: string | null = null;
-    if (roomInfo.hostSocketId === socket.id) {
-      playerId = roomInfo.hostPlayerId;
-    } else if (roomInfo.guestSocketId === socket.id) {
-      playerId = roomInfo.guestPlayerId;
-    }
-
-    if (!playerId) {
-      const error: ErrorPayload = {
-        code: 'NOT_IN_ROOM',
-        message: 'プレイヤーが部屋に参加していません',
-      };
-      callback?.(error);
-      socket.emit('error', error);
-      return;
-    }
-
     // 現在のプレイヤーのインデックスを取得
-    const currentPlayerIndex = gameState.players.findIndex((p: { id: string }) => p.id === playerId);
+    const currentPlayerIndex = gameState.players.findIndex((p: { id: string }) => p.id === payload.playerId);
 
     // 自分のターンかどうかをチェック
     if (gameState.currentPlayerIndex !== currentPlayerIndex) {
@@ -532,13 +529,13 @@ async function handleRemoveCard(
     await GameService.saveGameState(payload.roomId, gameState);
 
     logger.info(
-      { roomId: payload.roomId, playerId, position: { row, col }, cardId: removedCard.id },
+      { roomId: payload.roomId, playerId: payload.playerId, position: { row, col }, cardId: removedCard.id },
       'Card removed from board'
     );
 
     // レスポンスを作成
     const response: CardRemovedPayload = {
-      playerId,
+      playerId: payload.playerId,
       position: { row, col },
       card: {
         id: removedCard.id,
@@ -609,11 +606,34 @@ async function handleClaimCombo(
       return;
     }
 
+    // バリデーション: playerId
+    if (!payload.playerId || typeof payload.playerId !== 'string') {
+      const error: ErrorPayload = {
+        code: 'INVALID_PLAYER_ID',
+        message: 'プレイヤーIDが不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
     // バリデーション: comboPositions
     if (!Array.isArray(payload.comboPositions) || payload.comboPositions.length !== 3) {
       const error: ErrorPayload = {
         code: 'INVALID_COMBO_SIZE',
         message: '役の枚数が不正です（3枚である必要があります）',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // プレイヤーが部屋に参加しているか検証
+    const isPlayerInRoom = await validatePlayerInRoom(payload.playerId, payload.roomId);
+    if (!isPlayerInRoom) {
+      const error: ErrorPayload = {
+        code: 'NOT_IN_ROOM',
+        message: 'プレイヤーが部屋に参加していません',
       };
       callback?.(error);
       socket.emit('error', error);
@@ -633,7 +653,7 @@ async function handleClaimCombo(
       return;
     }
 
-    // 部屋情報を取得してプレイヤーを特定
+    // 部屋情報を取得（ゲーム終了時にplayerNameが必要なため）
     const roomInfo = await RoomService.getRoomInfo(payload.roomId);
     if (!roomInfo) {
       const error: ErrorPayload = {
@@ -645,26 +665,8 @@ async function handleClaimCombo(
       return;
     }
 
-    // socket.idからplayerIdを特定
-    let playerId: string | null = null;
-    if (roomInfo.hostSocketId === socket.id) {
-      playerId = roomInfo.hostPlayerId;
-    } else if (roomInfo.guestSocketId === socket.id) {
-      playerId = roomInfo.guestPlayerId;
-    }
-
-    if (!playerId) {
-      const error: ErrorPayload = {
-        code: 'NOT_IN_ROOM',
-        message: 'プレイヤーが部屋に参加していません',
-      };
-      callback?.(error);
-      socket.emit('error', error);
-      return;
-    }
-
     // 現在のプレイヤーのインデックスを取得
-    const currentPlayerIndex = gameState.players.findIndex((p) => p.id === playerId);
+    const currentPlayerIndex = gameState.players.findIndex((p) => p.id === payload.playerId);
     const currentPlayer = gameState.players[currentPlayerIndex];
 
     // 自分のターンかどうかをチェック
@@ -740,7 +742,7 @@ async function handleClaimCombo(
       // 山札から1枚ドロー
       cardToPlace = GameService.drawSingleCardFromDeck();
       gameState.deckCount -= 1;
-      gameState.lastAutoDrawnPlayerId = playerId;
+      gameState.lastAutoDrawnPlayerId = payload.playerId;
     } else {
       // 手札から選択
       if (currentPlayer.hand.cards.length === 0) {
@@ -814,7 +816,7 @@ async function handleClaimCombo(
     logger.info(
       {
         roomId: payload.roomId,
-        playerId,
+        playerId: payload.playerId,
         comboType: combo.type,
         starsAwarded,
         cardsDrawn,
@@ -824,7 +826,7 @@ async function handleClaimCombo(
 
     // レスポンスを作成
     const response: ComboResolvedPayload = {
-      playerId,
+      playerId: payload.playerId,
       combo,
       starsAwarded,
       cardsDrawn,
@@ -931,6 +933,17 @@ async function handleEndTurn(
       return;
     }
 
+    // バリデーション: playerId
+    if (!payload.playerId || typeof payload.playerId !== 'string') {
+      const error: ErrorPayload = {
+        code: 'INVALID_PLAYER_ID',
+        message: 'プレイヤーIDが不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
     // バリデーション: position
     if (
       !payload.position ||
@@ -940,6 +953,18 @@ async function handleEndTurn(
       const error: ErrorPayload = {
         code: 'INVALID_POSITION',
         message: '位置情報が不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // プレイヤーが部屋に参加しているか検証
+    const isPlayerInRoom = await validatePlayerInRoom(payload.playerId, payload.roomId);
+    if (!isPlayerInRoom) {
+      const error: ErrorPayload = {
+        code: 'NOT_IN_ROOM',
+        message: 'プレイヤーが部屋に参加していません',
       };
       callback?.(error);
       socket.emit('error', error);
@@ -959,38 +984,8 @@ async function handleEndTurn(
       return;
     }
 
-    // 部屋情報を取得してプレイヤーを特定
-    const roomInfo = await RoomService.getRoomInfo(payload.roomId);
-    if (!roomInfo) {
-      const error: ErrorPayload = {
-        code: 'ROOM_NOT_FOUND',
-        message: '部屋が見つかりません',
-      };
-      callback?.(error);
-      socket.emit('error', error);
-      return;
-    }
-
-    // socket.idからplayerIdを特定
-    let playerId: string | null = null;
-    if (roomInfo.hostSocketId === socket.id) {
-      playerId = roomInfo.hostPlayerId;
-    } else if (roomInfo.guestSocketId === socket.id) {
-      playerId = roomInfo.guestPlayerId;
-    }
-
-    if (!playerId) {
-      const error: ErrorPayload = {
-        code: 'NOT_IN_ROOM',
-        message: 'プレイヤーが部屋に参加していません',
-      };
-      callback?.(error);
-      socket.emit('error', error);
-      return;
-    }
-
     // 現在のプレイヤーのインデックスを取得
-    const currentPlayerIndex = gameState.players.findIndex((p) => p.id === playerId);
+    const currentPlayerIndex = gameState.players.findIndex((p) => p.id === payload.playerId);
     const currentPlayer = gameState.players[currentPlayerIndex];
 
     // 自分のターンかどうかをチェック
@@ -1066,7 +1061,7 @@ async function handleEndTurn(
       // 山札から1枚ドロー
       cardToPlace = GameService.drawSingleCardFromDeck();
       gameState.deckCount -= 1;
-      gameState.lastAutoDrawnPlayerId = playerId;
+      gameState.lastAutoDrawnPlayerId = payload.playerId;
     } else {
       // 手札から選択
       if (currentPlayer.hand.cards.length === 0) {
@@ -1109,7 +1104,7 @@ async function handleEndTurn(
     logger.info(
       {
         roomId: payload.roomId,
-        playerId,
+        playerId: payload.playerId,
         position: { row, col },
         cardId: cardToPlace.id,
       },
@@ -1118,7 +1113,7 @@ async function handleEndTurn(
 
     // レスポンスを作成
     const response: TurnEndedPayload = {
-      playerId,
+      playerId: payload.playerId,
       placedCard: cardToPlace,
       position: { row, col },
     };
@@ -1190,7 +1185,30 @@ async function handleLeaveRoom(
       return;
     }
 
-    // 部屋情報を取得
+    // バリデーション: playerId
+    if (!payload.playerId || typeof payload.playerId !== 'string') {
+      const error: ErrorPayload = {
+        code: 'INVALID_PLAYER_ID',
+        message: 'プレイヤーIDが不正です',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // プレイヤーが部屋に参加しているか検証
+    const isPlayerInRoom = await validatePlayerInRoom(payload.playerId, payload.roomId);
+    if (!isPlayerInRoom) {
+      const error: ErrorPayload = {
+        code: 'NOT_IN_ROOM',
+        message: 'プレイヤーが部屋に参加していません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
+    // 部屋情報を取得してplayerNameを取得
     const roomInfo = await RoomService.getRoomInfo(payload.roomId);
     if (!roomInfo) {
       const error: ErrorPayload = {
@@ -1202,36 +1220,32 @@ async function handleLeaveRoom(
       return;
     }
 
-    // socket.idからplayerIdとプレイヤー名を特定
-    let playerId: string | null = null;
+    // playerNameを取得
     let playerName: string | null = null;
-
-    if (roomInfo.hostSocketId === socket.id) {
-      playerId = roomInfo.hostPlayerId;
+    if (payload.playerId === roomInfo.hostPlayerId) {
       playerName = roomInfo.hostPlayerName;
-    } else if (roomInfo.guestSocketId === socket.id) {
-      playerId = roomInfo.guestPlayerId;
+    } else if (payload.playerId === roomInfo.guestPlayerId) {
       playerName = roomInfo.guestPlayerName;
     }
 
-    if (!playerId || !playerName) {
+    if (!playerName) {
       const error: ErrorPayload = {
         code: 'NOT_IN_ROOM',
-        message: 'プレイヤーが部屋に参加していません',
+        message: 'プレイヤー名が見つかりません',
       };
       callback?.(error);
       socket.emit('error', error);
       return;
     }
 
-    logger.info({ roomId: payload.roomId, playerId, playerName }, 'Player leaving room');
+    logger.info({ roomId: payload.roomId, playerId: payload.playerId, playerName }, 'Player leaving room');
 
     // Socket.IOルームから退出
     socket.leave(payload.roomId);
 
     // 部屋の他のメンバーに通知
     const leftPayload: PlayerLeftPayload = {
-      playerId,
+      playerId: payload.playerId,
       playerName,
     };
 
@@ -1240,7 +1254,7 @@ async function handleLeaveRoom(
     // callbackでレスポンスを返す
     callback?.({ success: true });
 
-    logger.info({ roomId: payload.roomId, playerId, playerName }, 'Player left room');
+    logger.info({ roomId: payload.roomId, playerId: payload.playerId, playerName }, 'Player left room');
   } catch (error) {
     logger.error(
       { err: error, roomId: payload.roomId, socketId: socket.id },

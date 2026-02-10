@@ -17,15 +17,18 @@ export interface JoinRoomPayload {
 
 export interface ReadyPayload {
   roomId: string;
+  playerId: string;
 }
 
 export interface RemoveCardPayload {
   roomId: string;
+  playerId: string;
   position: { row: number; col: number };
 }
 
 export interface ClaimComboPayload {
   roomId: string;
+  playerId: string;
   cardId: string | null;
   position: { row: number; col: number };
   comboPositions: Array<{ row: number; col: number }>;
@@ -33,12 +36,14 @@ export interface ClaimComboPayload {
 
 export interface EndTurnPayload {
   roomId: string;
+  playerId: string;
   cardId: string | null;
   position: { row: number; col: number };
 }
 
 export interface LeaveRoomPayload {
   roomId: string;
+  playerId: string;
 }
 
 // サーバー → クライアント

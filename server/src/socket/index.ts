@@ -328,9 +328,13 @@ async function handleReady(
       await RoomService.setRoomPlaying(payload.roomId);
 
       // 各プレイヤーに個別のgameStartイベントを送信
+      // 相手の手札情報をマスクしたgameStateを作成
+      const maskedGameStateForHost = GameService.maskOpponentHand(gameState, result.roomInfo.hostPlayerId);
+      const maskedGameStateForGuest = GameService.maskOpponentHand(gameState, result.roomInfo.guestPlayerId!);
+
       // ホストに送信
       const hostPayload: GameStartPayload = {
-        gameState,
+        gameState: maskedGameStateForHost,
         yourPlayerId: result.roomInfo.hostPlayerId,
         yourPlayerIndex: gameState.players[0].id === result.roomInfo.hostPlayerId ? 0 : 1,
       };
@@ -338,7 +342,7 @@ async function handleReady(
 
       // ゲストに送信
       const guestPayload: GameStartPayload = {
-        gameState,
+        gameState: maskedGameStateForGuest,
         yourPlayerId: result.roomInfo.guestPlayerId!,
         yourPlayerIndex: gameState.players[0].id === result.roomInfo.guestPlayerId ? 0 : 1,
       };

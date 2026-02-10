@@ -472,4 +472,38 @@ export class GameService {
       return null; // 引き分け
     }
   }
+
+  /**
+   * 相手の手札情報をマスク
+   * 指定したプレイヤー以外の手札内容を隠します（枚数のみ保持）
+   *
+   * @param gameState ゲーム状態
+   * @param viewerPlayerId 閲覧者のプレイヤーID
+   * @returns マスクされたゲーム状態（Deep copy）
+   */
+  static maskOpponentHand(gameState: GameStateDTO, viewerPlayerId: string): GameStateDTO {
+    // Deep copyを作成
+    const maskedState: GameStateDTO = JSON.parse(JSON.stringify(gameState));
+
+    // 各プレイヤーの手札をチェック
+    maskedState.players = maskedState.players.map((player) => {
+      if (player.id !== viewerPlayerId) {
+        // 相手プレイヤーの場合：手札の枚数だけ保持し、内容は空配列にする
+        const handCount = player.hand.cards.length;
+        return {
+          ...player,
+          hand: {
+            cards: new Array(handCount).fill(null).map(() => ({
+              id: 'hidden',
+              value: 0 as CardValueType,
+              color: CardColor.RED,
+            })),
+          },
+        };
+      }
+      return player;
+    });
+
+    return maskedState;
+  }
 }

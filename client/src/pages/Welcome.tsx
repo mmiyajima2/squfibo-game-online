@@ -1,7 +1,19 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CreateRoomDialog } from '../components/CreateRoomDialog'
 import './Welcome.css'
 
 export function Welcome() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  const handleOpenDialog = () => {
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+  }
+
   return (
     <div className="welcome-container">
       <header className="welcome-header">
@@ -25,9 +37,9 @@ export function Welcome() {
         </section>
 
         <section className="welcome-actions">
-          <Link to="/game" className="btn btn-primary btn-large">
+          <button onClick={handleOpenDialog} className="btn btn-primary btn-large">
             オンライン版を開始する
-          </Link>
+          </button>
           <Link to="/game" className="btn btn-secondary btn-large">
             ブラウザ版で遊ぶ
           </Link>
@@ -55,6 +67,8 @@ export function Welcome() {
         </p>
         <p>&copy; 2026 SquFibo Game</p>
       </footer>
+
+      <CreateRoomDialog isOpen={isDialogOpen} onClose={handleCloseDialog} />
     </div>
   )
 }

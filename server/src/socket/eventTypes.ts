@@ -2,7 +2,7 @@
  * Socket.IOイベントの型定義
  */
 
-import type { GameStateDTO } from '@squfibo/shared';
+import type { GameStateDTO, ComboDTO, CardDTO, PositionDTO } from '@squfibo/shared';
 
 // クライアント → サーバー
 
@@ -76,6 +76,45 @@ export interface CardRemovedPayload {
     value: number;
     color: string;
   };
+}
+
+export interface ComboResolvedPayload {
+  playerId: string;
+  combo: ComboDTO;
+  starsAwarded: number;
+  cardsDrawn: number;
+}
+
+export interface TurnEndedPayload {
+  playerId: string;
+  placedCard: CardDTO;
+  position: PositionDTO;
+}
+
+export interface TurnChangedPayload {
+  currentPlayerIndex: 0 | 1;
+  currentPlayerId: string;
+}
+
+export interface GameStateUpdatePayload {
+  gameState: GameStateDTO;
+  updateType: 'card_placed' | 'card_removed' | 'combo_resolved' | 'turn_changed';
+}
+
+export interface GameFinishedPayload {
+  gameState: GameStateDTO;
+  winner: {
+    playerId: string;
+    playerName: string;
+    stars: number;
+  } | null;
+  isDraw: boolean;
+  reason: 'ALL_STARS_CLAIMED' | 'DECK_EMPTY';
+}
+
+export interface PlayerLeftPayload {
+  playerId: string;
+  playerName: string;
 }
 
 export interface ErrorPayload {

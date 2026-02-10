@@ -2,11 +2,16 @@ import { randomUUID } from 'crypto';
 import {
   GameState,
   CardColor,
+  ComboType,
+  getComboRewardStars,
+  getComboDrawCount,
   type GameStateDTO,
   type PlayerDTO,
   type CardDTO,
   type BoardStateDTO,
   type CardValueType,
+  type PositionDTO,
+  type ComboDTO,
 } from '@squfibo/shared';
 import { getRedisClient } from './redisClient.js';
 
@@ -220,5 +225,251 @@ export class GameService {
     gameState.discardPileCount += 1;
 
     return card;
+  }
+
+  /**
+   * カードを盤面に配置
+   */
+  static placeCardOnBoard(
+    gameState: GameStateDTO,
+    card: CardDTO,
+    row: number,
+    col: number
+  ): boolean {
+    if (!this.isValidPosition(row, col)) {
+      return false;
+    }
+
+    if (gameState.board.cells[row][col] !== null) {
+      return false;
+    }
+
+    gameState.board.cells[row][col] = card;
+    gameState.lastPlacedPosition = { row, col };
+    return true;
+  }
+
+  /**
+   * 手札からカードを削除
+   */
+  static removeCardFromHand(player: PlayerDTO, cardId: string): CardDTO | null {
+    const cardIndex = player.hand.cards.findIndex((c) => c.id === cardId);
+    if (cardIndex === -1) {
+      return null;
+    }
+
+    const [card] = player.hand.cards.splice(cardIndex, 1);
+    return card;
+  }
+
+  /**
+   * 山札からカードをドロー
+   * @returns ドローしたカード数
+   */
+  static drawCardsFromDeck(
+    gameState: GameStateDTO,
+    player: PlayerDTO,
+    count: number
+  ): number {
+    let drawnCount = 0;
+
+    for (let i = 0; i < count && gameState.deckCount > 0; i++) {
+      // 実際のカードデッキから引くロジックはシンプルに
+      // deckCountを減らして、プレイヤーの手札に新しいカードを追加
+      const newCard: CardDTO = this.drawSingleCardFromDeck();
+      player.hand.cards.push(newCard);
+      gameState.deckCount -= 1;
+      drawnCount++;
+    }
+
+    return drawnCount;
+  }
+
+  /**
+   * 山札から1枚ドロー
+   */
+  static drawSingleCardFromDeck(): CardDTO {
+    // 簡易実装：ランダムなカードを生成
+    // 実際のゲームでは、デッキの状態を保持する必要がありますが、
+    // 現在の仕様ではdeckCountのみを管理しているため、ランダム生成で対応
+    const values: CardValueType[] = [1, 4, 9, 16];
+    const colors: CardColor[] = [CardColor.RED, CardColor.BLUE];
+
+    const value = values[Math.floor(Math.random() * values.length)];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    return {
+      id: randomUUID(),
+      value,
+      color,
+    };
+  }
+
+  /**
+   * 役の判定
+   * @returns 成立した役情報、または null
+   */
+  static validateCombo(
+    board: BoardStateDTO,
+    positions: PositionDTO[],
+    placedPosition: PositionDTO
+  ): ComboDTO | null {
+    // 基本チェック
+    if (positions.length !== 3) {
+      return null;
+    }
+
+    // 配置したカードが役に含まれているかチェック
+    const includesPlacedCard = positions.some(
+      (pos) => pos.row === placedPosition.row && pos.col === placedPosition.col
+    );
+    if (!includesPlacedCard) {
+      return null;
+    }
+
+    // カードを取得
+    const cards: CardDTO[] = [];
+    for (const pos of positions) {
+      const card = this.getCardAt(board, pos.row, pos.col);
+      if (!card) {
+        return null; // カードが存在しない
+      }
+      cards.push(card);
+    }
+
+    // 色が全て同じかチェック
+    const firstColor = cards[0].color;
+    if (!cards.every((card) => card.color === firstColor)) {
+      return null;
+    }
+
+    // カードが隣接しているかチェック
+    if (!this.areCardsAdjacent(positions)) {
+      return null;
+    }
+
+    // 役のタイプを判定
+    const values = cards.map((c) => c.value).sort((a, b) => a - b);
+
+    // 大役チェック: 1 + 4 + 16 = 21
+    if (values[0] === 1 && values[1] === 4 && values[2] === 16) {
+      return {
+        type: ComboType.THREE_CARDS,
+        cards,
+        positions,
+      };
+    }
+
+    // 小役チェック: 同じ数字3枚
+    if (values[0] === values[1] && values[1] === values[2]) {
+      return {
+        type: ComboType.TRIPLE_MATCH,
+        cards,
+        positions,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * カードが隣接しているかチェック
+   * 3枚のカードが縦横に連なっているか（L字、縦一列、横一列）
+   */
+  static areCardsAdjacent(positions: PositionDTO[]): boolean {
+    if (positions.length !== 3) {
+      return false;
+    }
+
+    // 各カードが少なくとも1つの他のカードに隣接している必要がある
+    // かつ、全体が連結している必要がある
+
+    // 隣接判定関数
+    const isAdjacent = (p1: PositionDTO, p2: PositionDTO): boolean => {
+      const rowDiff = Math.abs(p1.row - p2.row);
+      const colDiff = Math.abs(p1.col - p2.col);
+      return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+    };
+
+    // 各カードから少なくとも1つの他のカードへの隣接があるかチェック
+    const adjacencyCount = positions.map((p1, i) => {
+      let count = 0;
+      positions.forEach((p2, j) => {
+        if (i !== j && isAdjacent(p1, p2)) {
+          count++;
+        }
+      });
+      return count;
+    });
+
+    // L字型または一列の場合、隣接数は [1, 2, 1] または [2, 1, 1] などになる
+    // 少なくとも1つが2つ以上と隣接し、残りが1つ以上と隣接している必要がある
+    const hasCenter = adjacencyCount.some((count) => count === 2);
+    const allConnected = adjacencyCount.every((count) => count >= 1);
+
+    return hasCenter && allConnected;
+  }
+
+  /**
+   * 盤面から複数のカードを除去
+   */
+  static removeCardsFromBoard(
+    gameState: GameStateDTO,
+    positions: PositionDTO[]
+  ): CardDTO[] {
+    const removedCards: CardDTO[] = [];
+
+    for (const pos of positions) {
+      const card = this.removeCardFromBoard(gameState, pos.row, pos.col);
+      if (card) {
+        removedCards.push(card);
+      }
+    }
+
+    return removedCards;
+  }
+
+  /**
+   * ターンを変更
+   */
+  static changeTurn(gameState: GameStateDTO): void {
+    gameState.currentPlayerIndex = gameState.currentPlayerIndex === 0 ? 1 : 0;
+  }
+
+  /**
+   * ゲーム終了判定
+   * @returns 終了理由、または null（継続）
+   */
+  static checkGameEnd(
+    gameState: GameStateDTO
+  ): 'ALL_STARS_CLAIMED' | 'DECK_EMPTY' | null {
+    // 星がすべて獲得された
+    if (gameState.totalStars <= 0) {
+      return 'ALL_STARS_CLAIMED';
+    }
+
+    // 山札が空
+    if (gameState.deckCount <= 0) {
+      return 'DECK_EMPTY';
+    }
+
+    return null;
+  }
+
+  /**
+   * 勝者を判定
+   * @returns 勝者のプレイヤーインデックス、または null（引き分け）
+   */
+  static determineWinner(gameState: GameStateDTO): number | null {
+    const player1Stars = gameState.players[0].stars;
+    const player2Stars = gameState.players[1].stars;
+
+    if (player1Stars > player2Stars) {
+      return 0;
+    } else if (player2Stars > player1Stars) {
+      return 1;
+    } else {
+      return null; // 引き分け
+    }
   }
 }

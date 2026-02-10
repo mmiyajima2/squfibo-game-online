@@ -253,9 +253,9 @@
             <option value="joinRoom">joinRoom - 既存の部屋に参加</option>
             <option value="ready">ready - 準備完了</option>
             <option value="removeCard">removeCard - カードを削除（盤面満杯時）</option>
-            <option value="claimCombo">claimCombo - コンボを宣言（未実装）</option>
-            <option value="endTurn">endTurn - ターン終了（未実装）</option>
-            <option value="leaveRoom">leaveRoom - 部屋から退出（未実装）</option>
+            <option value="claimCombo">claimCombo - コンボを宣言</option>
+            <option value="endTurn">endTurn - ターン終了</option>
+            <option value="leaveRoom">leaveRoom - 部屋から退出</option>
           </select>
         </div>
       </div>
@@ -313,7 +313,62 @@
             </div>
           </div>
 
-          <!-- その他のイベントフォーム（未実装） -->
+          <!-- claimCombo -->
+          <div id="form-claimCombo">
+            <div class="form-group">
+              <label for="claimCombo-roomId">部屋ID:</label>
+              <input type="text" id="claimCombo-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label for="claimCombo-cardId">カードID（nullの場合は空欄）:</label>
+              <input type="text" id="claimCombo-cardId" placeholder="カードIDまたは空欄">
+              <div class="help-text">手札から選択する場合はカードID、山札から引く場合は空欄</div>
+            </div>
+            <div class="form-group">
+              <label for="claimCombo-row">配置位置 - 行 (0-2):</label>
+              <input type="number" id="claimCombo-row" min="0" max="2" value="0">
+            </div>
+            <div class="form-group">
+              <label for="claimCombo-col">配置位置 - 列 (0-2):</label>
+              <input type="number" id="claimCombo-col" min="0" max="2" value="0">
+            </div>
+            <div class="form-group">
+              <label for="claimCombo-positions">役を構成する位置 (JSON配列):</label>
+              <textarea id="claimCombo-positions" placeholder='[{"row":0,"col":0},{"row":0,"col":1},{"row":0,"col":2}]'></textarea>
+              <div class="help-text">3つの位置をJSON配列で指定。例: 横一列の場合</div>
+            </div>
+          </div>
+
+          <!-- endTurn -->
+          <div id="form-endTurn">
+            <div class="form-group">
+              <label for="endTurn-roomId">部屋ID:</label>
+              <input type="text" id="endTurn-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label for="endTurn-cardId">カードID（nullの場合は空欄）:</label>
+              <input type="text" id="endTurn-cardId" placeholder="カードIDまたは空欄">
+              <div class="help-text">手札から選択する場合はカードID、山札から引く場合は空欄</div>
+            </div>
+            <div class="form-group">
+              <label for="endTurn-row">配置位置 - 行 (0-2):</label>
+              <input type="number" id="endTurn-row" min="0" max="2" value="0">
+            </div>
+            <div class="form-group">
+              <label for="endTurn-col">配置位置 - 列 (0-2):</label>
+              <input type="number" id="endTurn-col" min="0" max="2" value="0">
+            </div>
+          </div>
+
+          <!-- leaveRoom -->
+          <div id="form-leaveRoom">
+            <div class="form-group">
+              <label for="leaveRoom-roomId">部屋ID:</label>
+              <input type="text" id="leaveRoom-roomId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            </div>
+          </div>
+
+          <!-- その他のイベントフォーム -->
           <div id="form-claimCombo">
             <p style="color: #888;">このイベントは未実装です</p>
           </div>
@@ -457,6 +512,40 @@
         console.log('🔄 gameStateUpdate:', data);
         showStatus(`ゲーム状態が更新されました (${data.updateType})`, 'info');
       });
+
+      socket.on('comboResolved', (data) => {
+        console.log('✨ comboResolved:', data);
+        showStatus(`役が成立しました！(${data.combo.type}: 星${data.starsAwarded}個、カード${data.cardsDrawn}枚ドロー)`, 'success');
+        showResult(data);
+      });
+
+      socket.on('turnEnded', (data) => {
+        console.log('✅ turnEnded:', data);
+        showStatus('ターンが終了しました（役申告なし）', 'info');
+        showResult(data);
+      });
+
+      socket.on('turnChanged', (data) => {
+        console.log('🔄 turnChanged:', data);
+        showStatus(`ターンが変わりました (プレイヤー${data.currentPlayerIndex})`, 'info');
+        showResult(data);
+      });
+
+      socket.on('gameFinished', (data) => {
+        console.log('🏁 gameFinished:', data);
+        if (data.isDraw) {
+          showStatus('ゲーム終了：引き分け！', 'info');
+        } else {
+          showStatus(`ゲーム終了：${data.winner.playerName}の勝利！(星${data.winner.stars}個)`, 'success');
+        }
+        showResult(data);
+      });
+
+      socket.on('playerLeft', (data) => {
+        console.log('👋 playerLeft:', data);
+        showStatus(`プレイヤーが退出しました: ${data.playerName}`, 'info');
+        showResult(data);
+      });
     }
 
     // イベントフォーム切り替え
@@ -529,6 +618,71 @@
           }
           if (isNaN(payload.position.row) || isNaN(payload.position.col)) {
             showStatus('行と列を正しく入力してください', 'error');
+            return;
+          }
+          break;
+
+        case 'claimCombo':
+          const cardIdInput = document.getElementById('claimCombo-cardId').value.trim();
+          const positionsInput = document.getElementById('claimCombo-positions').value.trim();
+
+          let comboPositions;
+          try {
+            comboPositions = JSON.parse(positionsInput);
+            if (!Array.isArray(comboPositions) || comboPositions.length !== 3) {
+              showStatus('役の位置は3つの配列である必要があります', 'error');
+              return;
+            }
+          } catch (e) {
+            showStatus('役の位置のJSON形式が不正です', 'error');
+            return;
+          }
+
+          payload = {
+            roomId: document.getElementById('claimCombo-roomId').value.trim(),
+            cardId: cardIdInput === '' ? null : cardIdInput,
+            position: {
+              row: parseInt(document.getElementById('claimCombo-row').value, 10),
+              col: parseInt(document.getElementById('claimCombo-col').value, 10)
+            },
+            comboPositions: comboPositions
+          };
+          if (!payload.roomId) {
+            showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (isNaN(payload.position.row) || isNaN(payload.position.col)) {
+            showStatus('行と列を正しく入力してください', 'error');
+            return;
+          }
+          break;
+
+        case 'endTurn':
+          const endTurnCardIdInput = document.getElementById('endTurn-cardId').value.trim();
+          payload = {
+            roomId: document.getElementById('endTurn-roomId').value.trim(),
+            cardId: endTurnCardIdInput === '' ? null : endTurnCardIdInput,
+            position: {
+              row: parseInt(document.getElementById('endTurn-row').value, 10),
+              col: parseInt(document.getElementById('endTurn-col').value, 10)
+            }
+          };
+          if (!payload.roomId) {
+            showStatus('部屋IDを入力してください', 'error');
+            return;
+          }
+          if (isNaN(payload.position.row) || isNaN(payload.position.col)) {
+            showStatus('行と列を正しく入力してください', 'error');
+            return;
+          }
+          break;
+
+        case 'leaveRoom':
+          payload = {
+            roomId: document.getElementById('leaveRoom-roomId').value.trim()
+          };
+          if (!payload.roomId) {
+            showStatus('部屋IDを入力してください', 'error');
             return;
           }
           break;

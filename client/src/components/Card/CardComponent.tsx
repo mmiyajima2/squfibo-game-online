@@ -1,5 +1,5 @@
 import { Card } from '../../domain/entities/Card';
-import { CardColor } from '../../domain/valueObjects/CardColor';
+import { CardColor } from 'squfibo-shared';
 import './CardComponent.css';
 
 interface CardComponentProps {
@@ -28,7 +28,7 @@ export function CardComponent({
   onCancel,
 }: CardComponentProps) {
   const colorName = card.color === CardColor.RED ? 'red' : 'blue';
-  const imagePath = `/cards/${colorName}-${card.value.value}.svg`;
+  const imagePath = `/cards/${colorName}-${card.value}.svg`;
 
   const classNames = [
     'card-component',
@@ -61,7 +61,7 @@ export function CardComponent({
     <div className={classNames} onClick={onClick}>
       <img
         src={imagePath}
-        alt={`${colorName} ${card.value.value}`}
+        alt={`${colorName} ${card.value}`}
         className="card-image"
       />
       {(isSelected || isInCombo) && (

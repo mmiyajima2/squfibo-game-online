@@ -1,18 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { Combo, ComboType } from './Combo';
 import { Card } from '../entities/Card';
-import { CardValue } from '../valueObjects/CardValue';
-import { CardColor } from '../valueObjects/CardColor';
-import { Position } from '../valueObjects/Position';
+import { CardColor } from 'squfibo-shared';
 
 describe('Combo', () => {
   it('should create a THREE_CARDS combo', () => {
-    const card1 = new Card(CardValue.of(1), CardColor.BLUE);
-    const card2 = new Card(CardValue.of(4), CardColor.BLUE);
-    const card3 = new Card(CardValue.of(16), CardColor.BLUE);
-    const pos1 = Position.of(0, 0);
-    const pos2 = Position.of(0, 1);
-    const pos3 = Position.of(0, 2);
+    const card1 = new Card(1, CardColor.BLUE);
+    const card2 = new Card(4, CardColor.BLUE);
+    const card3 = new Card(16, CardColor.BLUE);
+    const pos1 = { row: 0, col: 0 };
+    const pos2 = { row: 0, col: 1 };
+    const pos3 = { row: 0, col: 2 };
 
     const combo = new Combo(
       ComboType.THREE_CARDS,
@@ -27,12 +25,12 @@ describe('Combo', () => {
   });
 
   it('should create a TRIPLE_MATCH combo', () => {
-    const card1 = new Card(CardValue.of(4), CardColor.RED);
-    const card2 = new Card(CardValue.of(4), CardColor.RED);
-    const card3 = new Card(CardValue.of(4), CardColor.RED);
-    const pos1 = Position.of(0, 0);
-    const pos2 = Position.of(0, 1);
-    const pos3 = Position.of(0, 2);
+    const card1 = new Card(4, CardColor.RED);
+    const card2 = new Card(4, CardColor.RED);
+    const card3 = new Card(4, CardColor.RED);
+    const pos1 = { row: 0, col: 0 };
+    const pos2 = { row: 0, col: 1 };
+    const pos3 = { row: 0, col: 2 };
 
     const combo = new Combo(
       ComboType.TRIPLE_MATCH,
@@ -47,10 +45,10 @@ describe('Combo', () => {
   });
 
   it('should throw error when cards and positions length mismatch', () => {
-    const card1 = new Card(CardValue.of(1), CardColor.RED);
-    const card2 = new Card(CardValue.of(4), CardColor.RED);
-    const card3 = new Card(CardValue.of(16), CardColor.RED);
-    const pos1 = Position.of(0, 0);
+    const card1 = new Card(1, CardColor.RED);
+    const card2 = new Card(4, CardColor.RED);
+    const card3 = new Card(16, CardColor.RED);
+    const pos1 = { row: 0, col: 0 };
 
     expect(
       () => new Combo(ComboType.THREE_CARDS, [card1, card2, card3], [pos1])

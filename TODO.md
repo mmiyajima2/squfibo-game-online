@@ -1,6 +1,186 @@
 Task
 -----
 
+# [x] client側、オンライン版を開始するダイアログの後続処理を実装したい-1
+- ./shared/ の型をつかって、./client/ 以下の重複処理は削除してほしい
+- 現在は、client側にCPUとの対戦用の実装があるが、これに関わる分岐ロジックやソースは削除してほしい
+- client側は、buildさえ通れば、一旦はゲームとして機能しなくてもよい
+
+## Claudeの実装計画
+
+### 現状分析
+
+#### CPU関連の実装箇所
+- **CPU関連ファイル（削除対象）:**
+  - `client/src/types/CPUDifficulty.ts` - CPU難易度の型定義
+  - `client/src/domain/services/cpu/` - CPU戦略の実装（全ファイル）
+    - CPUStrategy.ts, CPUEasyStrategy.ts, CPUNormalStrategy.ts
+    - CPUStrategyFactory.ts, index.ts
+    - テストファイル（*.test.ts）
+
+- **CPU関連コード（削除対象）:**
+  - `client/src/domain/Game.ts` - CPUターン実行メソッド、cpuDifficultyフィールド
+  - `client/src/domain/entities/Player.ts` - cpuDifficultyフィールド、isCPU()メソッド
+  - `client/src/hooks/useGameState.ts` - CPUターン実行関連のアクション・関数
+  - `client/src/components/Game/GameContainer.tsx` - CPU実行状態管理、難易度選択モーダル、CPUターン自動開始
+
+#### 型の重複箇所
+- **client側 valueObjects（削除対象）:**
+  - `client/src/domain/valueObjects/CardColor.ts` - shared側とほぼ同じ
+  - `client/src/domain/valueObjects/CardValue.ts` - 値オブジェクトクラス（shared側はtype）
+  - `client/src/domain/valueObjects/Position.ts` - 値オブジェクトクラス（shared側はinterface）
+
+- **設計の違い:**
+  - client側: ドメイン駆動設計の値オブジェクトパターン（class）
+  - shared側: シンプルな型定義（type/interface + ヘルパー関数）
+
+- **方針:**
+  - shared側の型定義をclient側で使用する
+  - client側の値オブジェクトクラスは廃止
+  - ヘルパー関数やユーティリティはshared側を利用
+
+### 実装ステップ
+
+#### Phase 1: shared パッケージの依存関係追加
+- [ ] client/package.json に shared パッケージへの参照を追加
+- [ ] client側で shared の型をインポートできるようにする
+
+#### Phase 2: CPU関連の削除
+- [ ] CPU関連のフォルダとファイルを削除
+  - `client/src/types/CPUDifficulty.ts`
+  - `client/src/domain/services/cpu/` （フォルダごと）
+- [ ] Game.ts からCPU関連コードを削除
+  - CPUDifficulty import
+  - cpuDifficulty フィールド
+  - executeCPUTurn() メソッド
+  - createNewGame() の cpuDifficulty パラメータ
+- [ ] Player.ts からCPU関連コードを削除
+  - cpuDifficulty フィールド
+  - isCPU() メソッド
+- [ ] useGameState.ts からCPU関連コードを削除
+  - CPUDifficulty, CPUActionStep import
+  - executeCPUTurn, executeCPUStep 関数
+  - EXECUTE_CPU_TURN, EXECUTE_CPU_STEP アクション
+  - resetGame の cpuDifficulty パラメータ
+- [ ] GameContainer.tsx からCPU関連UIを削除
+  - CPU実行状態管理のstate
+  - CPU難易度選択モーダル
+  - CPUターン自動開始のuseEffect
+  - executeNextCPUStep 関数
+  - 難易度関連のimport
+
+#### Phase 3: 値オブジェクトの置き換え
+- [ ] CardColor の置き換え
+  - `shared/src/types/CardColor.ts` を使用
+  - client側の valueObjects/CardColor.ts を削除
+  - 全ての import を shared 側に変更
+- [ ] CardValue の置き換え
+  - shared側は type CardValueType (1 | 4 | 9 | 16)
+  - client側の CardValue クラスを削除
+  - Card エンティティで number 型として扱う
+  - バリデーションは shared の isValidCardValue() を使用
+- [ ] Position の置き換え
+  - shared側は interface Position
+  - client側の Position クラスを削除
+  - Position.of() → 普通のオブジェクト生成 { row, col }
+  - equals() → shared の positionEquals() を使用
+
+#### Phase 4: ビルド確認とテストの修正
+- [ ] ビルドエラーの修正
+  - 型エラーの解消
+  - import パスの修正
+- [ ] テストファイルの修正
+  - CPU関連テストの削除
+  - 値オブジェクトのテストを shared の型に合わせて修正
+- [ ] ビルドの成功確認
+
+### 注意事項
+- **buildが通ることが最優先**（ゲームが機能しなくてもよい）
+- shared パッケージへの依存を正しく設定する
+- 値オブジェクトの置き換えは広範囲に影響するため、段階的に実施
+- テストは後で修正してもよい（まずはビルドを優先）
+
+---
+
+**✅ 完了（2026-02-11）**: client側のCPU関連削除とshared型への置き換えが完了しました。
+
+### 実装結果
+
+#### Phase 1: shared パッケージの依存関係追加
+- ✅ client/package.json に shared パッケージへの参照を追加（file:../shared）
+- ✅ shared パッケージをESModule形式でビルド（module: "ESNext"）
+- ✅ package.jsonに "type": "module" を追加
+
+#### Phase 2: CPU関連の削除
+- ✅ CPU関連のフォルダとファイルを削除
+  - client/src/types/CPUDifficulty.ts
+  - client/src/domain/services/cpu/ （フォルダごと）
+- ✅ Game.ts からCPU関連コードを削除
+  - cpuDifficulty フィールド
+  - executeCPUTurn() メソッド
+  - createNewGame() の cpuDifficulty パラメータ
+- ✅ Player.ts からCPU関連コードを削除
+  - cpuDifficulty フィールド
+  - isCPU() メソッド
+- ✅ useGameState.ts からCPU関連コードを削除
+  - executeCPUTurn, executeCPUStep 関数
+  - EXECUTE_CPU_TURN, EXECUTE_CPU_STEP アクション
+- ✅ GameContainer.tsx からCPU関連UIを削除
+  - CPU実行状態管理のstate
+  - CPU難易度選択モーダル
+  - CPUターン自動開始のuseEffect
+- ✅ Game.test.ts からCPU関連のテストを削除
+
+#### Phase 3: 値オブジェクトの置き換え
+- ✅ **CardColor** の置き換え
+  - client/src/domain/valueObjects/CardColor.ts を削除
+  - shared/src/types/CardColor.ts を使用（enum）
+  - 全ファイルのimportをsharedに変更
+
+- ✅ **CardValue** の置き換え
+  - client/src/domain/valueObjects/CardValue.ts を削除
+  - shared/src/types/CardValue.ts の CardValueType (1 | 4 | 9 | 16) を使用
+  - Card.ts の value プロパティを CardValueType に変更
+  - `.value.value` を `.value` に一括置換
+  - `CardValue.of(n)` を数値リテラル `n` に置換
+  - テストファイルでの CardValue 使用を数値に置換
+
+- ✅ **Position** の置き換え
+  - client/src/domain/valueObjects/Position.ts を削除
+  - shared/src/types/Position.ts の Position interface を使用
+  - `Position.of(row, col)` を `{ row, col }` に一括置換
+  - `position.equals(other)` を `positionEquals(position, other)` に置換
+  - positionEquals 関数をsharedからimport
+  - 全ファイルのimportをsharedに変更
+
+#### ビルドとテストの結果
+- ✅ ビルド成功: `npm run build` - エラーなし
+- ✅ テスト成功: `npm test` - 94個のテスト全て通過
+  - Hand.test.ts: 6 tests ✓
+  - Player.test.ts: 5 tests ✓
+  - Deck.test.ts: 6 tests ✓
+  - Board.test.ts: 7 tests ✓
+  - Combo.test.ts: 3 tests ✓
+  - ComboDetector.test.ts: 23 tests ✓
+  - Game.test.ts: 39 tests ✓
+  - Card.test.ts: 5 tests ✓
+
+#### 削除されたファイル
+- client/src/types/CPUDifficulty.ts
+- client/src/domain/services/cpu/* (フォルダごと)
+- client/src/domain/valueObjects/CardColor.ts
+- client/src/domain/valueObjects/CardColor.test.ts
+- client/src/domain/valueObjects/CardValue.ts
+- client/src/domain/valueObjects/CardValue.test.ts
+- client/src/domain/valueObjects/Position.ts
+- client/src/domain/valueObjects/Position.test.ts
+
+#### 主な変更点
+- client側の独自の値オブジェクトクラスをsharedのシンプルな型定義に統一
+- CPU対戦機能を完全に削除し、オンライン対戦専用に
+- shared パッケージをESModule形式でビルドし、Viteとの互換性を確保
+- 型安全性を保ちながら、コードの重複を解消
+
 # [x] client側、ウエルカム画面で「オンライン版を開始する」を押した場合の実装をしたい
 - 押下すると、ダイアログがでる
 - ダイアログには、ホストのプレイヤー名をいれて対戦部屋を作成する、という流れにしたい

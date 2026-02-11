@@ -1,6 +1,6 @@
 import { Card } from './Card';
-import { CardValue } from '../valueObjects/CardValue';
-import { CardColor } from '../valueObjects/CardColor';
+import { CardColor } from 'squfibo-shared';
+import type { CardValueType } from 'squfibo-shared';
 
 export class Deck {
   constructor(private cards: Card[] = []) {}
@@ -31,17 +31,17 @@ export class Deck {
   static createInitialDeck(): Deck {
     const cards: Card[] = [];
     const cardConfig = [
-      { value: 1, count: 4 },
-      { value: 4, count: 4 },
-      { value: 9, count: 9 },
-      { value: 16, count: 4 },
+      { value: 1 as CardValueType, count: 4 },
+      { value: 4 as CardValueType, count: 4 },
+      { value: 9 as CardValueType, count: 9 },
+      { value: 16 as CardValueType, count: 4 },
     ];
     const colors = [CardColor.RED, CardColor.BLUE];
 
     for (const { value, count } of cardConfig) {
       for (const color of colors) {
         for (let i = 0; i < count; i++) {
-          cards.push(new Card(CardValue.of(value), color));
+          cards.push(new Card(value, color));
         }
       }
     }

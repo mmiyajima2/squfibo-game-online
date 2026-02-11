@@ -1,5 +1,5 @@
 import { Card } from '../entities/Card';
-import { Position } from '../valueObjects/Position';
+import type { Position } from 'squfibo-shared';
 
 /**
  * 役の種類

@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Deck } from './Deck';
 import { Card } from './Card';
-import { CardValue } from '../valueObjects/CardValue';
-import { CardColor } from '../valueObjects/CardColor';
+import { CardColor } from 'squfibo-shared';
 
 describe('Deck', () => {
   it('should create empty deck', () => {
@@ -12,8 +11,8 @@ describe('Deck', () => {
   });
 
   it('should draw cards from deck', () => {
-    const card1 = new Card(CardValue.of(1), CardColor.RED);
-    const card2 = new Card(CardValue.of(4), CardColor.BLUE);
+    const card1 = new Card(1, CardColor.RED);
+    const card2 = new Card(4, CardColor.BLUE);
     const deck = new Deck([card1, card2]);
 
     expect(deck.getCardCount()).toBe(2);
@@ -31,7 +30,7 @@ describe('Deck', () => {
   it('should shuffle cards', () => {
     const cards: Card[] = [];
     for (let i = 0; i < 20; i++) {
-      cards.push(new Card(CardValue.of(1), CardColor.RED));
+      cards.push(new Card(1, CardColor.RED));
     }
 
     const deck = new Deck([...cards]);
@@ -57,7 +56,7 @@ describe('Deck', () => {
 
     const countByValueAndColor = new Map<string, number>();
     for (const card of cards) {
-      const key = `${card.color}:${card.value.value}`;
+      const key = `${card.color}:${card.value}`;
       countByValueAndColor.set(key, (countByValueAndColor.get(key) || 0) + 1);
     }
 

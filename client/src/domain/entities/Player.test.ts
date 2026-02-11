@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Player } from './Player';
 import { Card } from './Card';
-import { CardValue } from '../valueObjects/CardValue';
-import { CardColor } from '../valueObjects/CardColor';
+import { CardColor } from 'squfibo-shared';
 
 describe('Player', () => {
   it('should create player with id', () => {
@@ -22,7 +21,7 @@ describe('Player', () => {
 
   it('should draw cards to hand', () => {
     const player = new Player('player1');
-    const card = new Card(CardValue.of(1), CardColor.RED);
+    const card = new Card(1, CardColor.RED);
 
     player.drawToHand(card);
     expect(player.hand.getCardCount()).toBe(1);
@@ -31,7 +30,7 @@ describe('Player', () => {
 
   it('should play card from hand', () => {
     const player = new Player('player1');
-    const card = new Card(CardValue.of(4), CardColor.BLUE);
+    const card = new Card(4, CardColor.BLUE);
 
     player.drawToHand(card);
     const played = player.playCard(card);
@@ -42,7 +41,7 @@ describe('Player', () => {
 
   it('should throw error when playing card not in hand', () => {
     const player = new Player('player1');
-    const card = new Card(CardValue.of(1), CardColor.RED);
+    const card = new Card(1, CardColor.RED);
 
     expect(() => player.playCard(card)).toThrow('Card not found in hand');
   });

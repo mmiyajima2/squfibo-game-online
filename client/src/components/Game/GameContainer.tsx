@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameState } from '../../hooks/useGameState';
 import { useUIState } from '../../hooks/useUIState';
 import { useCommentary } from '../../hooks/useCommentary';
-import { Position } from '../../domain/valueObjects/Position';
+import type { Position } from 'squfibo-shared';
+import { positionEquals } from 'squfibo-shared';
 import { Card } from '../../domain/entities/Card';
-import { CardColor } from '../../domain/valueObjects/CardColor';
+import { CardColor } from 'squfibo-shared';
 import { ComboDetector } from '../../domain/services/ComboDetector';
 import { Combo } from '../../domain/services/Combo';
 import { BoardGrid } from '../Board/BoardGrid';
@@ -14,15 +15,11 @@ import { CommentaryArea } from '../Commentary/CommentaryArea';
 import { ComboRulesPanel } from '../ComboRules/ComboRulesPanel';
 import { ControlPanel } from './ControlPanel';
 import { CommentaryBuilder } from '../../types/Commentary';
-import type { CPUDifficulty } from '../../types/CPUDifficulty';
-import { CPU_DIFFICULTY_LABELS, CPU_DIFFICULTY_ENABLED } from '../../types/CPUDifficulty';
-import type { CPUActionStep, CPUTurnPlan } from '../../domain/services/cpu';
-import { CPUStrategyFactory } from '../../domain/services/cpu';
 import './GameContainer.css';
 import '../ComboRules/ComboRulesPanel.css';
 
 export function GameContainer() {
-  const { game, version, currentPlayerIndex, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement, executeCPUStep } = useGameState();
+  const { game, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement } = useGameState();
   const {
     selectedCard,
     selectCard,
@@ -42,9 +39,6 @@ export function GameContainer() {
   } = useUIState();
   const { messages, addMessage, updateCurrent, clearMessages } = useCommentary();
 
-  const [showDifficultyModal, setShowDifficultyModal] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<CPUDifficulty>('Easy');
-  const [playerGoesFirst, setPlayerGoesFirst] = useState(true);
   const [showComboRules, setShowComboRules] = useState(true);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
 
@@ -61,7 +55,7 @@ export function GameContainer() {
     const positions: Position[] = [];
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const pos = Position.of(row, col);
+        const pos = { row: row, col: col };
         const card = game.board.getCard(pos);
         if (card && selectedBoardCards.some(sc => sc.id === card.id)) {
           positions.push(pos);
@@ -75,11 +69,6 @@ export function GameContainer() {
 
   // StrictModeでの二重実行を防ぐためのref
   const hasInitialized = useRef(false);
-
-  // CPU実行状態の管理
-  const [isCPUExecuting, setIsCPUExecuting] = useState(false);
-  const [cpuStepsQueue, setCpuStepsQueue] = useState<CPUActionStep[]>([]);
-  const cpuPlanRef = useRef<CPUTurnPlan | null>(null);
 
   // 初回レンダリング時のメッセージ表示
   useEffect(() => {
@@ -135,126 +124,6 @@ export function GameContainer() {
     prevIsPlayer1Turn.current = isPlayer1Turn;
   }, [isPlayer1Turn, addMessage, updateCurrent, clearPlacementHistory, game]);
 
-  // CPUターンのステップ実行
-  const executeNextCPUStep = useCallback(() => {
-    if (cpuStepsQueue.length === 0) {
-      setIsCPUExecuting(false);
-      cpuPlanRef.current = null;
-      return;
-    }
-
-    const [nextStep, ...remainingSteps] = cpuStepsQueue;
-    const cpuPlayerName = game.getCurrentPlayer().id === 'player1' ? '下側' : '上側';
-
-    // 各ステップのメッセージと遅延
-    let message = '';
-    let delay = 0;
-
-    switch (nextStep.type) {
-      case 'REMOVE_CARD': {
-        const card = game.board.getCard(nextStep.position);
-        if (card) {
-          const cardColor = card.color === CardColor.RED ? '赤' : '青';
-          const cardValue = card.value.value;
-          message = `${cpuPlayerName}が盤面の${cardColor}${cardValue}を除去しました`;
-        }
-        delay = 1000;
-        break;
-      }
-
-      case 'PLACE_CARD': {
-        const cardColor = nextStep.card.color === CardColor.RED ? '赤' : '青';
-        const cardValue = nextStep.card.value.value;
-        message = `${cpuPlayerName}が${cardColor}${cardValue}を配置しました`;
-        delay = 1200;
-        break;
-      }
-
-      case 'CLAIM_COMBO': {
-        const comboName = getComboTypeName(nextStep.combo.type);
-        message = `${cpuPlayerName}が${comboName}を申告しました！`;
-        delay = 1500;
-        break;
-      }
-
-      case 'END_TURN': {
-        delay = 500;
-        break;
-      }
-    }
-
-    // メッセージがあれば追加
-    if (message) {
-      addMessage(CommentaryBuilder.createMessage('cpu', '🤖', message));
-    }
-
-    // ステップを実行
-    setTimeout(() => {
-      try {
-        executeCPUStep(nextStep);
-        setCpuStepsQueue(remainingSteps);
-      } catch (error) {
-        console.error('CPU step execution failed:', error);
-        showError('CPUのステップ実行に失敗しました');
-        setIsCPUExecuting(false);
-        setCpuStepsQueue([]);
-        cpuPlanRef.current = null;
-      }
-    }, delay);
-  }, [cpuStepsQueue, game, addMessage, executeCPUStep, showError]);
-
-  // CPUステップキューの監視
-  useEffect(() => {
-    if (isCPUExecuting) {
-      executeNextCPUStep();
-    }
-  }, [isCPUExecuting, cpuStepsQueue, executeNextCPUStep]);
-
-  // CPUターンの自動開始
-  useEffect(() => {
-    const currentPlayerInEffect = game.getCurrentPlayer();
-    const isCPU = currentPlayerInEffect.isCPU();
-
-    console.log('[CPU Auto-Execute] useEffect fired', {
-      version,
-      currentPlayerIndex,
-      currentPlayerId: currentPlayerInEffect.id,
-      isCPU,
-      isGameOver: game.isGameOver(),
-      isCPUExecuting
-    });
-
-    // ゲームオーバー時、CPUでない場合、または既に実行中の場合はスキップ
-    if (game.isGameOver() || !isCPU || isCPUExecuting) {
-      console.log('[CPU Auto-Execute] Skipped', { isGameOver: game.isGameOver(), isCPU, isCPUExecuting });
-      return;
-    }
-
-    // CPUターンの計画を立てる
-    const timer = setTimeout(() => {
-      try {
-        const cpuDifficulty = game.players.find(p => p.isCPU())?.id === 'player1'
-          ? (game as any).cpuDifficulty || 'Easy'
-          : (game as any).cpuDifficulty || 'Easy';
-
-        const strategy = CPUStrategyFactory.createStrategy(cpuDifficulty);
-        const plan = strategy.planTurn(game);
-
-        console.log('[CPU Auto-Execute] CPU plan created', { steps: plan.steps.length });
-
-        cpuPlanRef.current = plan;
-        setIsCPUExecuting(true);
-        setCpuStepsQueue(plan.steps);
-      } catch (error) {
-        console.error('CPU turn planning failed:', error);
-        showError('CPUのターン計画に失敗しました');
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [currentPlayerIndex, version, game, isCPUExecuting, showError]);
-
-
   const handleCardSelect = (card: Card) => {
     if (!hasGameStarted) return;
 
@@ -270,7 +139,7 @@ export function GameContainer() {
         const emptyPositions: Position[] = [];
         for (let row = 0; row < 3; row++) {
           for (let col = 0; col < 3; col++) {
-            const pos = Position.of(row, col);
+            const pos = { row: row, col: col };
             if (game.board.isEmpty(pos)) {
               emptyPositions.push(pos);
             }
@@ -289,7 +158,7 @@ export function GameContainer() {
     }
 
     const cardColor = card.color === CardColor.RED ? '赤' : '青';
-    const cardValue = card.value.value;
+    const cardValue = card.value;
 
     const confirmed = window.confirm(`盤面の${cardColor}${cardValue} を捨てますか？`);
     if (!confirmed) {
@@ -354,7 +223,7 @@ export function GameContainer() {
 
     try {
       const cardColor = selectedCard.color === CardColor.RED ? '赤' : '青';
-      const cardValue = selectedCard.value.value;
+      const cardValue = selectedCard.value;
 
       // 現在の手札から選択されたカードと同じIDのカードを探す
       const currentHand = game.getCurrentPlayer().hand.getCards();
@@ -395,37 +264,20 @@ export function GameContainer() {
   };
 
   const handleResetGame = () => {
-    setShowDifficultyModal(true);
-  };
-
-  const handleStartGameWithDifficulty = (difficulty: CPUDifficulty) => {
-    setShowDifficultyModal(false);
     setShowGameOverModal(false);
-    resetGame(difficulty, playerGoesFirst);
+    resetGame(true);
     clearMessages();
     addMessage(CommentaryBuilder.gameStart());
-    const turnMessage = playerGoesFirst ? '下側のターンです' : '上側のターンです';
-    updateCurrent(turnMessage);
+    updateCurrent('下側のターンです');
     selectCard(null);
     clearHighlight();
     clearBoardCardSelection();
     clearPlacementHistory();
-
-    // CPU実行状態をクリア
-    setIsCPUExecuting(false);
-    setCpuStepsQueue([]);
-    cpuPlanRef.current = null;
-  };
-
-  const handleCancelDifficultySelection = () => {
-    setShowDifficultyModal(false);
-    setSelectedDifficulty('Easy');
-    setPlayerGoesFirst(true);
   };
 
   const handleCancelCard = (position: Position) => {
     // 配置履歴からこのpositionのカードを探す
-    const placement = placementHistory.find(ph => ph.position.equals(position));
+    const placement = placementHistory.find(ph => positionEquals(ph.position, position));
 
     if (!placement) {
       showError('取り消すカード配置がありません');
@@ -437,7 +289,7 @@ export function GameContainer() {
       removeLastPlacement();
 
       const cardColor = placement.card.color === CardColor.RED ? '赤' : '青';
-      const cardValue = placement.card.value.value;
+      const cardValue = placement.card.value;
       addMessage(
         CommentaryBuilder.createMessage(
           'cancel',
@@ -468,7 +320,7 @@ export function GameContainer() {
     const positions: Position[] = [];
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const pos = Position.of(row, col);
+        const pos = { row: row, col: col };
         const card = game.board.getCard(pos);
         if (card && selectedBoardCards.some(sc => sc.id === card.id)) {
           positions.push(pos);
@@ -591,75 +443,6 @@ export function GameContainer() {
           </div>
         </div>
       )}
-      {showDifficultyModal && (
-        <div className="difficulty-modal">
-          <div className="difficulty-modal-content">
-            <button
-              className="modal-close-button"
-              onClick={handleCancelDifficultySelection}
-              aria-label="閉じる"
-            >
-              ×
-            </button>
-            <h2>ゲーム設定</h2>
-
-            <div className="setting-section">
-              <h3>CPU難易度</h3>
-              <div className="difficulty-buttons">
-                {(['Easy', 'Normal', 'Hard'] as CPUDifficulty[]).map((difficulty) => {
-                  const isEnabled = CPU_DIFFICULTY_ENABLED[difficulty];
-                  const isSelected = selectedDifficulty === difficulty;
-
-                  return (
-                    <button
-                      key={difficulty}
-                      className={`difficulty-button ${isSelected ? 'selected' : ''} ${!isEnabled ? 'disabled' : ''}`}
-                      onClick={() => isEnabled && setSelectedDifficulty(difficulty)}
-                      disabled={!isEnabled}
-                    >
-                      {CPU_DIFFICULTY_LABELS[difficulty]}
-                      {!isEnabled && <span className="coming-soon">（準備中）</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="setting-section">
-              <h3>先攻・後攻</h3>
-              <div className="turn-order-buttons">
-                <button
-                  className={`turn-order-button ${playerGoesFirst ? 'selected' : ''}`}
-                  onClick={() => setPlayerGoesFirst(true)}
-                >
-                  先攻（自分が先）
-                </button>
-                <button
-                  className={`turn-order-button ${!playerGoesFirst ? 'selected' : ''}`}
-                  onClick={() => setPlayerGoesFirst(false)}
-                >
-                  後攻（CPUが先）
-                </button>
-              </div>
-            </div>
-
-            <div className="difficulty-modal-actions">
-              <button
-                className="difficulty-cancel-button"
-                onClick={handleCancelDifficultySelection}
-              >
-                キャンセル
-              </button>
-              <button
-                className="difficulty-start-button"
-                onClick={() => handleStartGameWithDifficulty(selectedDifficulty)}
-              >
-                ゲーム開始
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="game-header">
         <h1 className="game-title">SquFibo（すくふぃぼ）</h1>
         <button className="reset-button" onClick={handleResetGame}>
@@ -706,7 +489,7 @@ export function GameContainer() {
                 )}
                 {selectedCard && (
                   <div className="selected-card-info">
-                    選択中: {selectedCard.color} {selectedCard.value.value}
+                    選択中: {selectedCard.color} {selectedCard.value}
                   </div>
                 )}
                 {selectedBoardCards.length > 0 && (

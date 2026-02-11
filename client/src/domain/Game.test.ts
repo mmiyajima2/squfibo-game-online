@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Game, GameState } from './Game';
 import { Card } from './entities/Card';
-import { CardValue } from './valueObjects/CardValue';
-import { CardColor } from './valueObjects/CardColor';
-import { Position } from './valueObjects/Position';
+import { CardColor } from 'squfibo-shared';
 import { Combo, ComboType } from './services/Combo';
 
 describe('Game', () => {
@@ -61,7 +59,7 @@ describe('Game', () => {
     it('should place card on board', () => {
       const currentPlayer = game.getCurrentPlayer();
       const card = currentPlayer.hand.getCards()[0];
-      const position = Position.of(0, 0);
+      const position = { row: 0, col: 0 };
 
       currentPlayer.playCard(card);
       game.placeCard(card, position);
@@ -70,9 +68,9 @@ describe('Game', () => {
     });
 
     it('should throw error when placing on occupied position', () => {
-      const card1 = new Card(CardValue.of(1), CardColor.RED);
-      const card2 = new Card(CardValue.of(4), CardColor.BLUE);
-      const position = Position.of(1, 1);
+      const card1 = new Card(1, CardColor.RED);
+      const card2 = new Card(4, CardColor.BLUE);
+      const position = { row: 1, col: 1 };
 
       game.placeCard(card1, position);
 
@@ -80,21 +78,21 @@ describe('Game', () => {
     });
 
     it('should throw error when game is finished', () => {
-      const card = new Card(CardValue.of(1), CardColor.RED);
+      const card = new Card(1, CardColor.RED);
 
       while (!game.deck.isEmpty()) {
         game.deck.draw();
       }
       game.endTurn();
 
-      expect(() => game.placeCard(card, Position.of(0, 0))).toThrow('Game is already finished');
+      expect(() => game.placeCard(card, { row: 0, col: 0 })).toThrow('Game is already finished');
     });
   });
 
   describe('discardFromBoard', () => {
     it('should discard card from board', () => {
-      const card = new Card(CardValue.of(1), CardColor.RED);
-      const position = Position.of(1, 1);
+      const card = new Card(1, CardColor.RED);
+      const position = { row: 1, col: 1 };
 
       game.placeCard(card, position);
       game.discardFromBoard(position);
@@ -104,7 +102,7 @@ describe('Game', () => {
     });
 
     it('should handle discarding from empty position', () => {
-      const position = Position.of(0, 0);
+      const position = { row: 0, col: 0 };
       game.discardFromBoard(position);
 
       expect(game.board.isEmpty(position)).toBe(true);
@@ -113,12 +111,12 @@ describe('Game', () => {
 
   describe('claimCombo', () => {
     it('should remove cards from board when claiming THREE_CARDS', () => {
-      const card1 = new Card(CardValue.of(1), CardColor.RED);
-      const card4 = new Card(CardValue.of(4), CardColor.RED);
-      const card16 = new Card(CardValue.of(16), CardColor.RED);
-      const pos1 = Position.of(0, 0);
-      const pos2 = Position.of(0, 1);
-      const pos3 = Position.of(0, 2);
+      const card1 = new Card(1, CardColor.RED);
+      const card4 = new Card(4, CardColor.RED);
+      const card16 = new Card(16, CardColor.RED);
+      const pos1 = { row: 0, col: 0 };
+      const pos2 = { row: 0, col: 1 };
+      const pos3 = { row: 0, col: 2 };
 
       game.placeCard(card1, pos1);
       game.placeCard(card4, pos2);
@@ -137,12 +135,12 @@ describe('Game', () => {
       const initialHandCount = currentPlayer.hand.getCardCount();
       const initialDeckCount = game.deck.getCardCount();
 
-      const card1 = new Card(CardValue.of(1), CardColor.BLUE);
-      const card4 = new Card(CardValue.of(4), CardColor.BLUE);
-      const card16 = new Card(CardValue.of(16), CardColor.BLUE);
-      const pos1 = Position.of(1, 0);
-      const pos2 = Position.of(1, 1);
-      const pos3 = Position.of(1, 2);
+      const card1 = new Card(1, CardColor.BLUE);
+      const card4 = new Card(4, CardColor.BLUE);
+      const card16 = new Card(16, CardColor.BLUE);
+      const pos1 = { row: 1, col: 0 };
+      const pos2 = { row: 1, col: 1 };
+      const pos3 = { row: 1, col: 2 };
 
       game.placeCard(card1, pos1);
       game.placeCard(card4, pos2);
@@ -159,12 +157,12 @@ describe('Game', () => {
       const currentPlayer = game.getCurrentPlayer();
       const initialStars = currentPlayer.stars;
 
-      const card1 = new Card(CardValue.of(1), CardColor.RED);
-      const card4 = new Card(CardValue.of(4), CardColor.RED);
-      const card16 = new Card(CardValue.of(16), CardColor.RED);
-      const pos1 = Position.of(0, 0);
-      const pos2 = Position.of(0, 1);
-      const pos3 = Position.of(0, 2);
+      const card1 = new Card(1, CardColor.RED);
+      const card4 = new Card(4, CardColor.RED);
+      const card16 = new Card(16, CardColor.RED);
+      const pos1 = { row: 0, col: 0 };
+      const pos2 = { row: 0, col: 1 };
+      const pos3 = { row: 0, col: 2 };
 
       game.placeCard(card1, pos1);
       game.placeCard(card4, pos2);
@@ -178,12 +176,12 @@ describe('Game', () => {
     });
 
     it('should remove cards from board when claiming TRIPLE_MATCH', () => {
-      const card4_1 = new Card(CardValue.of(4), CardColor.BLUE);
-      const card4_2 = new Card(CardValue.of(4), CardColor.BLUE);
-      const card4_3 = new Card(CardValue.of(4), CardColor.BLUE);
-      const pos1 = Position.of(0, 0);
-      const pos2 = Position.of(0, 1);
-      const pos3 = Position.of(0, 2);
+      const card4_1 = new Card(4, CardColor.BLUE);
+      const card4_2 = new Card(4, CardColor.BLUE);
+      const card4_3 = new Card(4, CardColor.BLUE);
+      const pos1 = { row: 0, col: 0 };
+      const pos2 = { row: 0, col: 1 };
+      const pos3 = { row: 0, col: 2 };
 
       game.placeCard(card4_1, pos1);
       game.placeCard(card4_2, pos2);
@@ -202,12 +200,12 @@ describe('Game', () => {
       const initialHandCount = currentPlayer.hand.getCardCount();
       const initialDeckCount = game.deck.getCardCount();
 
-      const card9_1 = new Card(CardValue.of(9), CardColor.RED);
-      const card9_2 = new Card(CardValue.of(9), CardColor.RED);
-      const card9_3 = new Card(CardValue.of(9), CardColor.RED);
-      const pos1 = Position.of(1, 0);
-      const pos2 = Position.of(1, 1);
-      const pos3 = Position.of(1, 2);
+      const card9_1 = new Card(9, CardColor.RED);
+      const card9_2 = new Card(9, CardColor.RED);
+      const card9_3 = new Card(9, CardColor.RED);
+      const pos1 = { row: 1, col: 0 };
+      const pos2 = { row: 1, col: 1 };
+      const pos3 = { row: 1, col: 2 };
 
       game.placeCard(card9_1, pos1);
       game.placeCard(card9_2, pos2);
@@ -224,12 +222,12 @@ describe('Game', () => {
       const currentPlayer = game.getCurrentPlayer();
       const initialStars = currentPlayer.stars;
 
-      const card16_1 = new Card(CardValue.of(16), CardColor.BLUE);
-      const card16_2 = new Card(CardValue.of(16), CardColor.BLUE);
-      const card16_3 = new Card(CardValue.of(16), CardColor.BLUE);
-      const pos1 = Position.of(2, 0);
-      const pos2 = Position.of(2, 1);
-      const pos3 = Position.of(2, 2);
+      const card16_1 = new Card(16, CardColor.BLUE);
+      const card16_2 = new Card(16, CardColor.BLUE);
+      const card16_3 = new Card(16, CardColor.BLUE);
+      const pos1 = { row: 2, col: 0 };
+      const pos2 = { row: 2, col: 1 };
+      const pos3 = { row: 2, col: 2 };
 
       game.placeCard(card16_1, pos1);
       game.placeCard(card16_2, pos2);
@@ -250,12 +248,12 @@ describe('Game', () => {
         game.deck.draw();
       }
 
-      const card1 = new Card(CardValue.of(1), CardColor.RED);
-      const card4 = new Card(CardValue.of(4), CardColor.RED);
-      const card16 = new Card(CardValue.of(16), CardColor.RED);
-      const pos1 = Position.of(0, 0);
-      const pos2 = Position.of(0, 1);
-      const pos3 = Position.of(0, 2);
+      const card1 = new Card(1, CardColor.RED);
+      const card4 = new Card(4, CardColor.RED);
+      const card16 = new Card(16, CardColor.RED);
+      const pos1 = { row: 0, col: 0 };
+      const pos2 = { row: 0, col: 1 };
+      const pos3 = { row: 0, col: 2 };
 
       game.placeCard(card1, pos1);
       game.placeCard(card4, pos2);
@@ -273,28 +271,28 @@ describe('Game', () => {
 
       // 星を18個まで使い切る（残り3個）
       for (let i = 0; i < 18; i++) {
-        const card = new Card(CardValue.of(1), CardColor.RED);
-        const card2 = new Card(CardValue.of(1), CardColor.RED);
-        const card3 = new Card(CardValue.of(1), CardColor.RED);
-        game.placeCard(card, Position.of(0, 0));
-        game.placeCard(card2, Position.of(0, 1));
-        game.placeCard(card3, Position.of(0, 2));
+        const card = new Card(1, CardColor.RED);
+        const card2 = new Card(1, CardColor.RED);
+        const card3 = new Card(1, CardColor.RED);
+        game.placeCard(card, { row: 0, col: 0 });
+        game.placeCard(card2, { row: 0, col: 1 });
+        game.placeCard(card3, { row: 0, col: 2 });
         const combo = new Combo(
           ComboType.TRIPLE_MATCH,
           [card, card2, card3],
-          [Position.of(0, 0), Position.of(0, 1), Position.of(0, 2)]
+          [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }]
         );
         game.claimCombo(combo);
       }
 
       expect(game.getTotalStars()).toBe(3);
 
-      const card1 = new Card(CardValue.of(1), CardColor.BLUE);
-      const card4 = new Card(CardValue.of(4), CardColor.BLUE);
-      const card16 = new Card(CardValue.of(16), CardColor.BLUE);
-      const pos1 = Position.of(1, 0);
-      const pos2 = Position.of(1, 1);
-      const pos3 = Position.of(1, 2);
+      const card1 = new Card(1, CardColor.BLUE);
+      const card4 = new Card(4, CardColor.BLUE);
+      const card16 = new Card(16, CardColor.BLUE);
+      const pos1 = { row: 1, col: 0 };
+      const pos2 = { row: 1, col: 1 };
+      const pos3 = { row: 1, col: 2 };
 
       game.placeCard(card1, pos1);
       game.placeCard(card4, pos2);
@@ -319,13 +317,13 @@ describe('Game', () => {
       }
       game.endTurn();
 
-      const card1 = new Card(CardValue.of(1), CardColor.RED);
-      const card4 = new Card(CardValue.of(4), CardColor.RED);
-      const card16 = new Card(CardValue.of(16), CardColor.RED);
+      const card1 = new Card(1, CardColor.RED);
+      const card4 = new Card(4, CardColor.RED);
+      const card16 = new Card(16, CardColor.RED);
       const combo = new Combo(
         ComboType.THREE_CARDS,
         [card1, card4, card16],
-        [Position.of(0, 0), Position.of(0, 1), Position.of(0, 2)]
+        [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }]
       );
 
       const result = game.claimCombo(combo);
@@ -356,16 +354,16 @@ describe('Game', () => {
     it('should finish game when all stars are claimed', () => {
       // 星を21個使い切る（TRIPLE_MATCHで1個ずつ×21回）
       for (let i = 0; i < 21; i++) {
-        const card = new Card(CardValue.of(1), CardColor.RED);
-        const card2 = new Card(CardValue.of(1), CardColor.RED);
-        const card3 = new Card(CardValue.of(1), CardColor.RED);
-        game.placeCard(card, Position.of(0, 0));
-        game.placeCard(card2, Position.of(0, 1));
-        game.placeCard(card3, Position.of(0, 2));
+        const card = new Card(1, CardColor.RED);
+        const card2 = new Card(1, CardColor.RED);
+        const card3 = new Card(1, CardColor.RED);
+        game.placeCard(card, { row: 0, col: 0 });
+        game.placeCard(card2, { row: 0, col: 1 });
+        game.placeCard(card3, { row: 0, col: 2 });
         const combo = new Combo(
           ComboType.TRIPLE_MATCH,
           [card, card2, card3],
-          [Position.of(0, 0), Position.of(0, 1), Position.of(0, 2)]
+          [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }]
         );
         game.claimCombo(combo);
       }
@@ -415,26 +413,26 @@ describe('Game', () => {
       const initialStars = currentPlayer.stars;
       const initialHandCount = currentPlayer.hand.getCardCount();
 
-      const card1 = new Card(CardValue.of(1), CardColor.RED);
-      const card4 = new Card(CardValue.of(4), CardColor.RED);
-      const card16 = new Card(CardValue.of(16), CardColor.RED);
+      const card1 = new Card(1, CardColor.RED);
+      const card4 = new Card(4, CardColor.RED);
+      const card16 = new Card(16, CardColor.RED);
 
-      game.placeCard(card1, Position.of(0, 0));
-      game.placeCard(card4, Position.of(0, 1));
-      game.placeCard(card16, Position.of(0, 2));
+      game.placeCard(card1, { row: 0, col: 0 });
+      game.placeCard(card4, { row: 0, col: 1 });
+      game.placeCard(card16, { row: 0, col: 2 });
 
       const combo = new Combo(
         ComboType.THREE_CARDS,
         [card1, card4, card16],
-        [Position.of(0, 0), Position.of(0, 1), Position.of(0, 2)]
+        [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }]
       );
       game.claimCombo(combo);
 
       expect(currentPlayer.stars).toBe(initialStars + 3);
       expect(currentPlayer.hand.getCardCount()).toBe(initialHandCount + 3);
-      expect(game.board.isEmpty(Position.of(0, 0))).toBe(true);
-      expect(game.board.isEmpty(Position.of(0, 1))).toBe(true);
-      expect(game.board.isEmpty(Position.of(0, 2))).toBe(true);
+      expect(game.board.isEmpty({ row: 0, col: 0 })).toBe(true);
+      expect(game.board.isEmpty({ row: 0, col: 1 })).toBe(true);
+      expect(game.board.isEmpty({ row: 0, col: 2 })).toBe(true);
 
       game.endTurn();
       expect(game.getCurrentPlayer()).toBe(game.players[1]);
@@ -445,26 +443,26 @@ describe('Game', () => {
       const initialStars = currentPlayer.stars;
       const initialHandCount = currentPlayer.hand.getCardCount();
 
-      const card9_1 = new Card(CardValue.of(9), CardColor.BLUE);
-      const card9_2 = new Card(CardValue.of(9), CardColor.BLUE);
-      const card9_3 = new Card(CardValue.of(9), CardColor.BLUE);
+      const card9_1 = new Card(9, CardColor.BLUE);
+      const card9_2 = new Card(9, CardColor.BLUE);
+      const card9_3 = new Card(9, CardColor.BLUE);
 
-      game.placeCard(card9_1, Position.of(1, 0));
-      game.placeCard(card9_2, Position.of(1, 1));
-      game.placeCard(card9_3, Position.of(1, 2));
+      game.placeCard(card9_1, { row: 1, col: 0 });
+      game.placeCard(card9_2, { row: 1, col: 1 });
+      game.placeCard(card9_3, { row: 1, col: 2 });
 
       const combo = new Combo(
         ComboType.TRIPLE_MATCH,
         [card9_1, card9_2, card9_3],
-        [Position.of(1, 0), Position.of(1, 1), Position.of(1, 2)]
+        [{ row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }]
       );
       game.claimCombo(combo);
 
       expect(currentPlayer.stars).toBe(initialStars + 1);
       expect(currentPlayer.hand.getCardCount()).toBe(initialHandCount + 1);
-      expect(game.board.isEmpty(Position.of(1, 0))).toBe(true);
-      expect(game.board.isEmpty(Position.of(1, 1))).toBe(true);
-      expect(game.board.isEmpty(Position.of(1, 2))).toBe(true);
+      expect(game.board.isEmpty({ row: 1, col: 0 })).toBe(true);
+      expect(game.board.isEmpty({ row: 1, col: 1 })).toBe(true);
+      expect(game.board.isEmpty({ row: 1, col: 2 })).toBe(true);
 
       game.endTurn();
       expect(game.getCurrentPlayer()).toBe(game.players[1]);
@@ -498,7 +496,7 @@ describe('Game', () => {
 
   describe('drawAndPlaceCard', () => {
     it('should draw from deck and place on board', () => {
-      const position = Position.of(0, 0);
+      const position = { row: 0, col: 0 };
       const initialDeckCount = game.deck.getCardCount();
 
       const drawnCard = game.drawAndPlaceCard(position);
@@ -510,7 +508,7 @@ describe('Game', () => {
     });
 
     it('should throw error if position is not empty', () => {
-      const position = Position.of(0, 0);
+      const position = { row: 0, col: 0 };
       const card = game.getCurrentPlayer().hand.getCards()[0];
 
       game.getCurrentPlayer().playCard(card);
@@ -520,7 +518,7 @@ describe('Game', () => {
     });
 
     it('should throw error if deck is empty', () => {
-      const position = Position.of(0, 0);
+      const position = { row: 0, col: 0 };
       while (!game.deck.isEmpty()) {
         game.deck.draw();
       }
@@ -534,7 +532,7 @@ describe('Game', () => {
       }
       game.endTurn();
 
-      const position = Position.of(0, 0);
+      const position = { row: 0, col: 0 };
       expect(() => game.drawAndPlaceCard(position)).toThrow('Game is already finished');
     });
   });
@@ -628,116 +626,4 @@ describe('Game', () => {
     });
   });
 
-  describe('executeCPUTurn', () => {
-    it('should execute CPU turn when current player is CPU', () => {
-      const game = Game.createNewGame('Easy', false);
-      const cpuPlayer = game.getCurrentPlayer();
-
-      expect(cpuPlayer.isCPU()).toBe(true);
-
-      const result = game.executeCPUTurn();
-
-      expect(result.placedCard).toBeDefined();
-      expect(result.position).toBeDefined();
-      expect(game.board.getCard(result.position)).toBeDefined();
-    });
-
-    it('should throw error when current player is not CPU', () => {
-      const game = Game.createNewGame(undefined, true);
-      const humanPlayer = game.getCurrentPlayer();
-
-      expect(humanPlayer.isCPU()).toBe(false);
-      expect(() => game.executeCPUTurn()).toThrow('Current player is not a CPU');
-    });
-
-    it('should remove a card when board is full', () => {
-      const game = Game.createNewGame('Easy', false);
-
-      // 盤面を満杯にする
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
-          const position = Position.of(row, col);
-          const card = new Card(CardValue.of(1), CardColor.RED);
-          game.board.placeCard(card, position);
-        }
-      }
-
-      expect(game.board.isFull()).toBe(true);
-
-      const result = game.executeCPUTurn();
-
-      expect(result.removedPosition).toBeDefined();
-      expect(result.placedCard).toBeDefined();
-      expect(game.board.isFull()).toBe(true);
-    });
-
-    it('should claim combo when detected', () => {
-      // 複数回試行して、役が申告される場合をテスト
-      let comboClaimedCount = 0;
-      let comboDetectedCount = 0;
-
-      for (let i = 0; i < 50; i++) {
-        const testGame = Game.createNewGame('Easy', false);
-        const testPlayer = testGame.getCurrentPlayer();
-
-        // 盤面に1と4を隣接配置
-        const pos1 = Position.of(0, 0);
-        const pos2 = Position.of(0, 1);
-        testGame.placeCard(new Card(CardValue.of(1), CardColor.RED), pos1);
-        testGame.placeCard(new Card(CardValue.of(4), CardColor.RED), pos2);
-
-        // 空いている位置を1つだけにする（pos3）
-        const pos3 = Position.of(0, 2);
-        for (let row = 0; row < 3; row++) {
-          for (let col = 0; col < 3; col++) {
-            const pos = Position.of(row, col);
-            if (!pos.equals(pos1) && !pos.equals(pos2) && !pos.equals(pos3)) {
-              testGame.placeCard(new Card(CardValue.of(9), CardColor.BLUE), pos);
-            }
-          }
-        }
-
-        // CPUの手札を空にして、16だけを持たせる
-        const handCards = [...testPlayer.hand.getCards()];
-        handCards.forEach(card => testPlayer.playCard(card));
-        testPlayer.hand.addCard(new Card(CardValue.of(16), CardColor.RED));
-
-        const result = testGame.executeCPUTurn();
-
-        // 役が検出されたかチェック
-        if (result.claimedCombo || result.missedCombo) {
-          comboDetectedCount++;
-          if (result.claimedCombo) {
-            comboClaimedCount++;
-          }
-        }
-      }
-
-      // 役が検出された回数が十分にあり、少なくとも1回は申告されているはず
-      expect(comboDetectedCount).toBeGreaterThan(0);
-      expect(comboClaimedCount).toBeGreaterThan(0);
-    });
-
-    it('should work with multiple consecutive CPU turns', () => {
-      const game = Game.createNewGame('Easy', false);
-
-      for (let i = 0; i < 5; i++) {
-        // 現在のプレイヤーがCPUの場合のみ実行
-        if (game.getCurrentPlayer().isCPU()) {
-          const result = game.executeCPUTurn();
-
-          expect(result.placedCard).toBeDefined();
-          expect(result.position).toBeDefined();
-        }
-
-        // ターン終了
-        game.endTurn();
-
-        // ゲームが終了していなければ続行
-        if (game.isGameOver()) {
-          break;
-        }
-      }
-    });
-  });
 });

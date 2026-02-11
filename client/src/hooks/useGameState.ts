@@ -1,10 +1,8 @@
 import { useReducer, useCallback } from 'react';
 import { Game } from '../domain/Game';
 import { Card } from '../domain/entities/Card';
-import { Position } from '../domain/valueObjects/Position';
+import type { Position } from 'squfibo-shared';
 import { Combo } from '../domain/services/Combo';
-import type { CPUDifficulty } from '../types/CPUDifficulty';
-import type { CPUActionStep } from '../domain/services/cpu';
 
 interface GameStateHook {
   game: Game;
@@ -17,10 +15,8 @@ interface GameStateHook {
   discardFromBoard: (position: Position) => void;
   discardFromHand: (card: Card) => void;
   drawAndPlaceCard: (position: Position) => Card | null;
-  resetGame: (cpuDifficulty?: CPUDifficulty, playerGoesFirst?: boolean) => void;
+  resetGame: (playerGoesFirst?: boolean) => void;
   cancelPlacement: (position: Position) => void;
-  executeCPUTurn: () => void;
-  executeCPUStep: (step: CPUActionStep) => void;
 }
 
 type GameAction =
@@ -30,10 +26,8 @@ type GameAction =
   | { type: 'DISCARD_FROM_BOARD'; position: Position }
   | { type: 'DISCARD_FROM_HAND'; card: Card }
   | { type: 'DRAW_AND_PLACE'; position: Position }
-  | { type: 'RESET_GAME'; cpuDifficulty?: CPUDifficulty; playerGoesFirst?: boolean }
-  | { type: 'CANCEL_PLACEMENT'; position: Position }
-  | { type: 'EXECUTE_CPU_TURN' }
-  | { type: 'EXECUTE_CPU_STEP'; step: CPUActionStep };
+  | { type: 'RESET_GAME'; playerGoesFirst?: boolean }
+  | { type: 'CANCEL_PLACEMENT'; position: Position };
 
 interface GameStateWrapper {
   game: Game;
@@ -139,7 +133,7 @@ function gameReducer(state: GameStateWrapper, action: GameAction): GameStateWrap
     case 'RESET_GAME': {
       const playerGoesFirst = action.playerGoesFirst !== undefined ? action.playerGoesFirst : true;
       return {
-        game: Game.createNewGame(action.cpuDifficulty, playerGoesFirst),
+        game: Game.createNewGame(playerGoesFirst),
         version: 0,
         currentPlayerIndexSnapshot: playerGoesFirst ? 0 : 1,
         hasGameStarted: true,
@@ -158,104 +152,6 @@ function gameReducer(state: GameStateWrapper, action: GameAction): GameStateWrap
         currentPlayer.drawToHand(card);
       }
       return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: state.currentPlayerIndexSnapshot, hasGameStarted: state.hasGameStarted };
-    }
-
-    case 'EXECUTE_CPU_TURN': {
-      const currentPlayer = game.getCurrentPlayer();
-      const currentIndex = currentPlayer.id === 'player1' ? 0 : 1;
-
-      console.log('[EXECUTE_CPU_TURN] Action received', {
-        currentPlayerId: currentPlayer.id,
-        isCPU: currentPlayer.isCPU(),
-        currentIndex,
-        snapshot: state.currentPlayerIndexSnapshot,
-        version: state.version
-      });
-
-      // React Strict Modeの二重実行対策: CPUでない場合はスキップ
-      if (!currentPlayer.isCPU()) {
-        console.log('[EXECUTE_CPU_TURN] Skipped (not CPU)');
-        return state;
-      }
-
-      // スナップショットと一致しない場合は既に実行済み（snapshotを同期して返す）
-      if (currentIndex !== state.currentPlayerIndexSnapshot) {
-        console.log('[EXECUTE_CPU_TURN] Skipped (snapshot mismatch) - syncing snapshot', { currentIndex, snapshot: state.currentPlayerIndexSnapshot });
-        return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: currentIndex as 0 | 1 };
-      }
-
-      // CPUターンを実行
-      console.log('[EXECUTE_CPU_TURN] Executing CPU turn...');
-      game.executeCPUTurn();
-
-      // executeCPUTurn内部でendTurn()が呼ばれるため、ターンが切り替わっている
-      const afterIndex = game.getCurrentPlayer().id === 'player1' ? 0 : 1;
-      console.log('[EXECUTE_CPU_TURN] CPU turn completed', {
-        afterIndex,
-        newVersion: state.version + 1
-      });
-      return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: afterIndex as 0 | 1, hasGameStarted: state.hasGameStarted };
-    }
-
-    case 'EXECUTE_CPU_STEP': {
-      const step = action.step;
-      const currentPlayer = game.getCurrentPlayer();
-
-      console.log('[EXECUTE_CPU_STEP] Executing step', { stepType: step.type });
-
-      switch (step.type) {
-        case 'REMOVE_CARD': {
-          if (game.board.isEmpty(step.position)) {
-            return state;
-          }
-          game.discardFromBoard(step.position);
-          return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: state.currentPlayerIndexSnapshot, hasGameStarted: state.hasGameStarted };
-        }
-
-        case 'PLACE_CARD': {
-          if (!game.board.isEmpty(step.position)) {
-            return state;
-          }
-
-          if (step.isFromDeck) {
-            game.drawAndPlaceCard(step.position);
-          } else {
-            const cardInHand = currentPlayer.hand.getCards().find(c => c.id === step.card.id);
-            if (!cardInHand) {
-              return state;
-            }
-            currentPlayer.playCard(cardInHand);
-            game.placeCard(cardInHand, step.position);
-          }
-          return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: state.currentPlayerIndexSnapshot, hasGameStarted: state.hasGameStarted };
-        }
-
-        case 'CLAIM_COMBO': {
-          const hasCardsAtPositions = step.combo.positions.some(pos => !game.board.isEmpty(pos));
-          if (!hasCardsAtPositions) {
-            const currentIndex = game.getCurrentPlayer().id === 'player1' ? 0 : 1;
-            return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: currentIndex as 0 | 1 };
-          }
-
-          game.claimCombo(step.combo);
-          return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: state.currentPlayerIndexSnapshot, hasGameStarted: state.hasGameStarted };
-        }
-
-        case 'END_TURN': {
-          const beforeIndex = game.getCurrentPlayer().id === 'player1' ? 0 : 1;
-
-          if (beforeIndex !== state.currentPlayerIndexSnapshot) {
-            return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: beforeIndex as 0 | 1 };
-          }
-
-          game.endTurn();
-          const afterIndex = game.getCurrentPlayer().id === 'player1' ? 0 : 1;
-          return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: afterIndex as 0 | 1, hasGameStarted: state.hasGameStarted };
-        }
-
-        default:
-          return state;
-      }
     }
 
     default:
@@ -313,20 +209,12 @@ export function useGameState(): GameStateHook {
     }
   }, []);
 
-  const resetGame = useCallback((cpuDifficulty?: CPUDifficulty, playerGoesFirst?: boolean) => {
-    dispatch({ type: 'RESET_GAME', cpuDifficulty, playerGoesFirst });
+  const resetGame = useCallback((playerGoesFirst?: boolean) => {
+    dispatch({ type: 'RESET_GAME', playerGoesFirst });
   }, []);
 
   const cancelPlacement = useCallback((position: Position) => {
     dispatch({ type: 'CANCEL_PLACEMENT', position });
-  }, []);
-
-  const executeCPUTurn = useCallback(() => {
-    dispatch({ type: 'EXECUTE_CPU_TURN' });
-  }, []);
-
-  const executeCPUStep = useCallback((step: CPUActionStep) => {
-    dispatch({ type: 'EXECUTE_CPU_STEP', step });
   }, []);
 
   return {
@@ -342,7 +230,5 @@ export function useGameState(): GameStateHook {
     drawAndPlaceCard,
     resetGame,
     cancelPlacement,
-    executeCPUTurn,
-    executeCPUStep,
   };
 }

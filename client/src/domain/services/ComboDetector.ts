@@ -1,6 +1,7 @@
 import { Board } from '../entities/Board';
 import { Card } from '../entities/Card';
-import { Position } from '../valueObjects/Position';
+import type { Position } from 'squfibo-shared';
+import { positionEquals } from 'squfibo-shared';
 import { Combo, ComboType } from './Combo';
 
 export interface PlacementSuggestion {
@@ -22,7 +23,7 @@ export class ComboDetector {
     const allPositions: Position[] = [];
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        allPositions.push(Position.of(row, col));
+        allPositions.push({ row: row, col: col });
       }
     }
 
@@ -52,10 +53,10 @@ export class ComboDetector {
     allPositions: Position[]
   ): Combo[] {
     const combos: Combo[] = [];
-    const lastValue = lastCard.value.value;
+    const lastValue = lastCard.value;
 
     const sameColorPositions = allPositions.filter(pos => {
-      if (pos.equals(lastPlacedPosition)) {
+      if (positionEquals(pos, lastPlacedPosition)) {
         return false;
       }
       const card = board.getCard(pos);
@@ -69,7 +70,7 @@ export class ComboDetector {
         const card1 = board.getCard(pos1)!;
         const card2 = board.getCard(pos2)!;
 
-        const values = [lastValue, card1.value.value, card2.value.value].sort((a, b) => a - b);
+        const values = [lastValue, card1.value, card2.value].sort((a, b) => a - b);
 
         if (values[0] === 1 && values[1] === 4 && values[2] === 16) {
           // 3枚役は連なっている必要がある（縦3つ、横3つ、またはL字型）
@@ -96,10 +97,10 @@ export class ComboDetector {
     allPositions: Position[]
   ): Combo[] {
     const combos: Combo[] = [];
-    const lastValue = lastCard.value.value;
+    const lastValue = lastCard.value;
 
     const sameColorPositions = allPositions.filter(pos => {
-      if (pos.equals(lastPlacedPosition)) {
+      if (positionEquals(pos, lastPlacedPosition)) {
         return false;
       }
       const card = board.getCard(pos);
@@ -114,7 +115,7 @@ export class ComboDetector {
         const card2 = board.getCard(pos2)!;
 
         // Check if all three cards have the same value
-        if (lastValue === card1.value.value && lastValue === card2.value.value) {
+        if (lastValue === card1.value && lastValue === card2.value) {
           // Check if the three positions are adjacent
           if (this.areAdjacentThreeCards([lastPlacedPosition, pos1, pos2])) {
             combos.push(
@@ -146,7 +147,7 @@ export class ComboDetector {
       return null;
     }
 
-    const values = cards.map(card => card.value.value).sort((a, b) => a - b);
+    const values = cards.map(card => card.value).sort((a, b) => a - b);
 
     if (values.length === 3) {
       // 3枚役の場合、位置が連なっている必要がある（縦3つ、横3つ、またはL字型）
@@ -261,7 +262,7 @@ export class ComboDetector {
     const emptyPositions: Position[] = [];
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const position = Position.of(row, col);
+        const position = { row: row, col: col };
         if (board.isEmpty(position)) {
           emptyPositions.push(position);
         }

@@ -2,11 +2,8 @@ import { Board } from './entities/Board';
 import { Deck } from './entities/Deck';
 import { Player } from './entities/Player';
 import { Card } from './entities/Card';
-import { Position } from './valueObjects/Position';
+import type { Position } from 'squfibo-shared';
 import { Combo } from './services/Combo';
-import type { CPUDifficulty } from '../types/CPUDifficulty';
-import { CPUStrategyFactory } from './services/cpu/CPUStrategyFactory';
-import type { CPUTurnResult } from './services/cpu/CPUStrategy';
 
 export enum GameState {
   PLAYING = 'PLAYING',
@@ -24,16 +21,15 @@ export class Game {
     private currentPlayerIndex: 0 | 1,
     private totalStars: number,
     private discardPile: Card[],
-    private gameState: GameState,
-    public readonly cpuDifficulty?: CPUDifficulty
+    private gameState: GameState
   ) {}
 
-  static createNewGame(cpuDifficulty?: CPUDifficulty, playerGoesFirst: boolean = true): Game {
+  static createNewGame(playerGoesFirst: boolean = true): Game {
     const deck = Deck.createInitialDeck();
     deck.shuffle();
 
     const player1 = new Player('player1');
-    const player2 = new Player('player2', cpuDifficulty);
+    const player2 = new Player('player2');
 
     for (let i = 0; i < 8; i++) {
       const card1 = deck.draw();
@@ -49,8 +45,7 @@ export class Game {
       playerGoesFirst ? 0 : 1,
       21,
       [],
-      GameState.PLAYING,
-      cpuDifficulty || 'Easy'
+      GameState.PLAYING
     );
   }
 
@@ -211,35 +206,5 @@ export class Game {
 
   getLastPlacedPosition(): Position | null {
     return this.lastPlacedPosition;
-  }
-
-  /**
-   * CPUのターンを実行する
-   *
-   * 現在のプレイヤーがCPUの場合のみ動作する。
-   * CPUの難易度に応じた戦略を使用してターンを実行し、
-   * カード配置と役の申告を自動で行う。
-   *
-   * @returns CPUターンの実行結果
-   * @throws 現在のプレイヤーがCPUでない場合はエラー
-   */
-  executeCPUTurn(): CPUTurnResult {
-    const currentPlayer = this.getCurrentPlayer();
-
-    if (!currentPlayer.isCPU()) {
-      throw new Error('Current player is not a CPU');
-    }
-
-    if (!currentPlayer.cpuDifficulty) {
-      throw new Error('CPU difficulty is not set');
-    }
-
-    // 難易度に応じた戦略を取得
-    const strategy = CPUStrategyFactory.createStrategy(currentPlayer.cpuDifficulty);
-
-    // CPUのターンを実行
-    const result = strategy.executeTurn(this);
-
-    return result;
   }
 }

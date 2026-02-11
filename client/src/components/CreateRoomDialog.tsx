@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createRoom } from '../lib/socket';
 import type { RoomCreatedPayload, ErrorPayload } from '../lib/socket';
 import './CreateRoomDialog.css';
@@ -9,11 +10,11 @@ interface CreateRoomDialogProps {
 }
 
 export function CreateRoomDialog({ isOpen, onClose }: CreateRoomDialogProps) {
+  const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roomData, setRoomData] = useState<RoomCreatedPayload | null>(null);
-  const [copiedUrl, setCopiedUrl] = useState<'host' | 'guest' | null>(null);
 
   // ダイアログが開くたびにリセット
   useEffect(() => {
@@ -22,7 +23,6 @@ export function CreateRoomDialog({ isOpen, onClose }: CreateRoomDialogProps) {
       setIsLoading(false);
       setError(null);
       setRoomData(null);
-      setCopiedUrl(null);
     }
   }, [isOpen]);
 
@@ -54,6 +54,12 @@ export function CreateRoomDialog({ isOpen, onClose }: CreateRoomDialogProps) {
       (data: RoomCreatedPayload) => {
         setIsLoading(false);
         setRoomData(data);
+
+        // ローカルストレージに保存
+        localStorage.setItem('squfibo_room_id', data.roomId);
+        localStorage.setItem('squfibo_player_id', data.playerId);
+        localStorage.setItem('squfibo_player_role', 'host');
+        localStorage.setItem('squfibo_guest_url', data.guestUrl);
       },
       (error: ErrorPayload) => {
         setIsLoading(false);
@@ -62,15 +68,11 @@ export function CreateRoomDialog({ isOpen, onClose }: CreateRoomDialogProps) {
     );
   };
 
-  const handleCopyUrl = async (url: string, type: 'host' | 'guest') => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedUrl(type);
-      setTimeout(() => setCopiedUrl(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy URL:', err);
-      setError('URLのコピーに失敗しました');
-    }
+  const handleNavigateToGame = () => {
+    if (!roomData) return;
+
+    // ホスト用URLから roomId と playerId を抽出してゲーム画面に遷移
+    navigate(`/game/${roomData.roomId}/${roomData.playerId}`);
   };
 
   const handleClose = () => {
@@ -119,44 +121,8 @@ export function CreateRoomDialog({ isOpen, onClose }: CreateRoomDialogProps) {
             <h2 className="dialog-title">部屋を作成しました！</h2>
             <div className="room-info">
               <p className="room-success-message">
-                対戦部屋が作成されました。下のURLを友達に送って招待しましょう！
+                対戦部屋が作成されました。下のボタンからゲーム画面に移動してください。
               </p>
-
-              <div className="url-section">
-                <h3 className="url-title">ホスト用URL（あなた）</h3>
-                <div className="url-container">
-                  <input
-                    type="text"
-                    className="url-input"
-                    value={roomData.hostUrl}
-                    readOnly
-                  />
-                  <button
-                    className="btn btn-copy"
-                    onClick={() => handleCopyUrl(roomData.hostUrl, 'host')}
-                  >
-                    {copiedUrl === 'host' ? 'コピー完了！' : 'コピー'}
-                  </button>
-                </div>
-              </div>
-
-              <div className="url-section">
-                <h3 className="url-title">ゲスト用URL（友達に送る）</h3>
-                <div className="url-container">
-                  <input
-                    type="text"
-                    className="url-input"
-                    value={roomData.guestUrl}
-                    readOnly
-                  />
-                  <button
-                    className="btn btn-copy"
-                    onClick={() => handleCopyUrl(roomData.guestUrl, 'guest')}
-                  >
-                    {copiedUrl === 'guest' ? 'コピー完了！' : 'コピー'}
-                  </button>
-                </div>
-              </div>
 
               <div className="room-info-details">
                 <p>部屋ID: {roomData.roomId}</p>
@@ -172,8 +138,8 @@ export function CreateRoomDialog({ isOpen, onClose }: CreateRoomDialogProps) {
                 </p>
               </div>
 
-              <button className="btn btn-primary" onClick={handleClose}>
-                閉じる
+              <button className="btn btn-primary" onClick={handleNavigateToGame}>
+                ゲーム画面へ移動
               </button>
             </div>
           </>

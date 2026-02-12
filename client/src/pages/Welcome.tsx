@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { CreateRoomDialog } from '../components/CreateRoomDialog'
+import type { RoomCreatedPayload } from '../lib/socket'
 import './Welcome.css'
 
 export function Welcome() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const navigate = useNavigate()
 
   const handleOpenDialog = () => {
     setIsDialogOpen(true)
@@ -12,6 +14,20 @@ export function Welcome() {
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false)
+  }
+
+  const handleRoomCreated = (data: RoomCreatedPayload, playerName: string) => {
+    // ダイアログを閉じる
+    setIsDialogOpen(false)
+
+    // /gameページに遷移（query parameterでplayerName, role, roomId, playerIdを渡す）
+    const params = new URLSearchParams({
+      playerName,
+      role: 'host',
+      roomId: data.roomId,
+      playerId: data.playerId,
+    })
+    navigate(`/game?${params.toString()}`)
   }
 
   return (
@@ -68,7 +84,11 @@ export function Welcome() {
         <p>&copy; 2026 SquFibo Game</p>
       </footer>
 
-      <CreateRoomDialog isOpen={isDialogOpen} onClose={handleCloseDialog} />
+      <CreateRoomDialog
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        onSuccess={handleRoomCreated}
+      />
     </div>
   )
 }

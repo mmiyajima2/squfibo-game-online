@@ -1,90 +1,57 @@
 Task
 -----
-
 # [x] client側、オンライン版を開始するダイアログの後続処理を実装したい-2
-- ダイアログで、ホスト側URLはコピー用URLでなく、リンクになっていてほしい
-- ダイアログで、ゲスト側URLはこの段階でださなくてよい（例：ローカルストレージに保存）
-- ホスト側URLリンクをクリックすると、ゲームに遷移する (root=/game)
-- 遷移した先のゲーム画面では、下側はをホスト、上側はをゲスト用として扱う
-- 下側の手札エリアには、ゲームの準備完了ボタンがあって、それを押下するとreadyイベントを送信する
-- 上側の手札エリアには、ゲスト側URLボタンのコピーフィールドがある状状態する. \
-  これをコピーして、友達にSlackとかで送ることを想定している
+- ホストがPlayerNameをいれたら、/gameにすぐ遷移してほしい
+- そのプレイヤーネームとrole=hostを、query parameterとして/game画面に引き継いでほしい
+- 現在用意してある、コピー用フィールドがあるダイアログは不要なので関連コンポーネントは削除してほしい
 
-**✅ 完了（2026-02-11）**: オンライン版開始ダイアログの後続処理の実装が完了しました。
+**✅ 完了（2026-02-12）**: オンライン版開始ダイアログの後続処理が完了しました。
 
-## 実装結果
+### 実装結果
 
-### 修正・追加したファイル
+#### 修正したファイル
+1. **client/src/components/CreateRoomDialog.tsx**
+   - `onSuccess` コールバックを追加（部屋作成成功時に親コンポーネントに通知）
+   - URL表示部分を削除（117-179行目）
+   - 部屋作成成功後、即座に親コンポーネントに通知して遷移するように変更
+   - 不要なstate（`roomData`, `copiedUrl`）を削除
+   - 不要な関数（`handleCopyUrl`）を削除
 
-#### 1. **client/src/lib/socket.ts** - Socket.io関数の拡張
-- ✅ `joinRoom()` 関数を追加（ゲストが部屋に参加）
-- ✅ `sendReady()` 関数を追加（準備完了イベントを送信）
-- ✅ 型定義を追加（`JoinRoomPayload`, `RoomJoinedPayload`, `ReadyPayload`）
+2. **client/src/pages/Welcome.tsx**
+   - `useNavigate` をインポート
+   - `handleRoomCreated` 関数を追加（部屋作成成功時に/gameに遷移）
+   - query parameterに以下を追加:
+     - `playerName`: ホストのプレイヤー名
+     - `role`: "host"
+     - `roomId`: 作成された部屋のID
+     - `playerId`: ホストのプレイヤーID
+   - CreateRoomDialogに`onSuccess`プロパティを追加
 
-#### 2. **client/src/App.tsx** - ルーティング設定の拡張
-- ✅ `/game/:roomId/:playerId` ルートを追加（ホスト用）
-- ✅ `/room/:roomId` ルートを追加（ゲスト用、クエリパラメータ `?role=guest`）
+3. **client/src/pages/Game.tsx**
+   - `useSearchParams` をインポートしてquery parameterを読み取り
+   - playerName, role, roomId, playerIdを取得
+   - オンラインゲームモードの情報をコンソールにログ出力（デバッグ用）
 
-#### 3. **client/src/components/CreateRoomDialog.tsx** - ダイアログの改修
-- ✅ ホスト用URLをリンクボタンに変更（コピーボタンを削除）
-- ✅ ゲスト用URLは非表示にし、ローカルストレージに保存
-- ✅ 「ゲーム画面へ移動」ボタンで `/game/:roomId/:playerId` に遷移
-- ✅ roomId, playerId, playerRole, guestUrl をローカルストレージに保存
+#### 動作フロー
+1. ユーザーが「オンライン版を開始する」ボタンをクリック
+2. ダイアログが表示され、プレイヤー名を入力
+3. 「部屋を作成」ボタンをクリック
+4. Socket.ioで`createRoom`イベントをサーバーに送信
+5. サーバーから`roomCreated`イベントを受信
+6. `onSuccess`コールバックが呼び出され、ダイアログが閉じる
+7. `/game?playerName=xxx&role=host&roomId=xxx&playerId=xxx`に即座に遷移
+8. Game.tsxでquery parameterを読み取り、コンソールに出力
 
-#### 4. **client/src/pages/Game.tsx** - ゲーム画面の改修
-- ✅ URLパラメータから roomId と playerId を取得
-- ✅ クエリパラメータ `?role=guest` でゲストアクセスを判定
-- ✅ ローカルゲーム（パラメータなし）とオンライン対戦を分岐
-- ✅ **ゲスト参加画面**を実装
-  - プレイヤー名入力フォーム
-  - `joinRoom` イベント送信
-  - 参加成功後に準備画面へ遷移
-- ✅ **オンライン対戦準備画面**を実装
-  - 上側エリア（相手側）
-    - ホスト: ゲスト用URLコピーフィールド表示
-    - ゲスト: 「相手の準備を待っています...」表示
-  - 下側エリア（自分側）
-    - 準備完了ボタン
-    - `sendReady` イベント送信
-  - 部屋情報表示（roomId, playerRole, playerId）
-  - エラーメッセージ表示
+#### ビルド確認
+- ✅ ビルド成功: `npm run build` - エラーなし
+- ✅ TypeScriptの型チェック: エラーなし
 
-### 実装した機能
+#### 注意事項
+- GameContainerはまだquery parameterを使用していない（将来の実装で対応予定）
+- 現時点では、/gameページにクエリパラメータが渡されるところまで実装
+- オンラインゲームとしての実装は今後のタスクで対応
 
-#### ホスト側の流れ
-1. ウェルカム画面で「オンライン版を開始する」ボタンをクリック
-2. ダイアログでプレイヤー名を入力して部屋を作成
-3. 「ゲーム画面へ移動」ボタンで `/game/:roomId/:playerId` に遷移
-4. オンライン対戦準備画面が表示
-5. 上側エリアにゲスト用URLコピーフィールドが表示
-6. ゲスト用URLをコピーして友達に送信
-7. 下側エリアの「準備完了」ボタンをクリックして `ready` イベント送信
-
-#### ゲスト側の流れ
-1. ホストから送られたゲスト用URL（`/room/:roomId?role=guest`）にアクセス
-2. プレイヤー名を入力して「部屋に参加」ボタンをクリック
-3. `joinRoom` イベントが送信され、参加成功
-4. オンライン対戦準備画面が表示
-5. 下側エリアの「準備完了」ボタンをクリックして `ready` イベント送信
-
-### ローカルストレージの利用
-
-以下の情報をローカルストレージに保存：
-- `squfibo_room_id`: 部屋ID
-- `squfibo_player_id`: プレイヤーID
-- `squfibo_player_role`: プレイヤーの役割（'host' または 'guest'）
-- `squfibo_guest_url`: ゲスト用URL（ホストのみ）
-
-### ビルド確認
-- ✅ ビルド成功（`npm run build`）
-- ✅ TypeScriptエラーなし
-- ✅ Viteビルド成功（328.49 kB）
-
-### 注意事項
-- gameStartイベント受信後のゲーム開始処理は未実装（TODO）
-- 実際のゲームプレイ画面への遷移は次のステップで実装予定
-- 再接続時の状態復元処理は未実装
-- Socket.ioイベントのエラーハンドリングは基本的なもののみ実装
+---
 
 # [x] client側、オンライン版を開始するダイアログの後続処理を実装したい-1
 - ./shared/ の型をつかって、./client/ 以下の重複処理は削除してほしい

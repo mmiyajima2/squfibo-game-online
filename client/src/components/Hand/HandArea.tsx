@@ -14,6 +14,7 @@ interface HandAreaProps {
   disabled?: boolean;
   hideCardDetails?: boolean;
   readyButton?: ReactNode;
+  guestUrlField?: ReactNode;
 }
 
 export function HandArea({
@@ -27,6 +28,7 @@ export function HandArea({
   disabled = false,
   hideCardDetails = false,
   readyButton,
+  guestUrlField,
 }: HandAreaProps) {
   const handleCardClick = (card: Card) => {
     if (onCardClick && !isOpponent && !disabled) {
@@ -67,6 +69,7 @@ export function HandArea({
       </div>
       <div className="hand-count">{cards.length} 枚</div>
       {readyButton && <div className="hand-ready-button">{readyButton}</div>}
+      {guestUrlField && <div className="hand-guest-url-field">{guestUrlField}</div>}
     </div>
   );
 }

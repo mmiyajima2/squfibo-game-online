@@ -7,6 +7,43 @@ import { socket } from '../lib/socket'
 
 type PlayerRole = 'host' | 'guest'
 
+// ゲストURLコピーフィールドコンポーネント
+function GuestUrlCopyField({ roomId }: { roomId: string }) {
+  const [copied, setCopied] = useState(false)
+  const guestUrl = `${window.location.origin}/game?roomId=${roomId}&role=guest`
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(guestUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('URLのコピーに失敗しました:', error)
+    }
+  }
+
+  return (
+    <div className="guest-url-container">
+      <div className="guest-url-label">ゲスト招待用URL</div>
+      <div className="guest-url-input-wrapper">
+        <input
+          type="text"
+          value={guestUrl}
+          readOnly
+          className="guest-url-input"
+          onClick={(e) => e.currentTarget.select()}
+        />
+        <button
+          onClick={handleCopy}
+          className={`guest-url-copy-button ${copied ? 'copied' : ''}`}
+        >
+          {copied ? 'コピー完了!' : 'コピー'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function Game() {
   const [searchParams] = useSearchParams()
 
@@ -111,6 +148,11 @@ export function Game() {
     })
   }
 
+  // ゲストURLフィールド（ホストのみ、ゲスト未参加時に表示）
+  const guestUrlField = isOnlineMode && roleParam === 'host' && !opponentPlayerName && roomIdParam
+    ? <GuestUrlCopyField roomId={roomIdParam} />
+    : undefined
+
   return (
     <ErrorBoundary>
       <GameContainer
@@ -121,6 +163,7 @@ export function Game() {
         isReady={isReady}
         isWaitingForGameStart={isWaitingForGameStart}
         onReady={handleReady}
+        guestUrlField={guestUrlField}
       />
     </ErrorBoundary>
   )

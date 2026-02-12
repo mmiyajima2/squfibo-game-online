@@ -26,6 +26,7 @@ type GameContainerProps = {
   isReady?: boolean
   isWaitingForGameStart?: boolean
   onReady?: () => void
+  guestUrlField?: React.ReactNode
 }
 
 export function GameContainer({
@@ -36,6 +37,7 @@ export function GameContainer({
   isReady = false,
   isWaitingForGameStart = false,
   onReady,
+  guestUrlField,
 }: GameContainerProps = {}) {
   const { game, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement } = useGameState();
   const {
@@ -514,6 +516,7 @@ export function GameContainer({
                 <div className="waiting-message">準備完了しました。相手プレイヤーの準備を待っています...</div>
               ) : undefined
             }
+            guestUrlField={guestUrlField}
           />
         </div>
 

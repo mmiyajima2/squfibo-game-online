@@ -1,6 +1,65 @@
 Task
 -----
 
+# [x] client側、ホストプレイヤーが/gameに遷移した後の後続処理を実装してほしい-2
+- 遷移後、上のホスト側手札エリアには、ゲストにおくるURLのコピーフィールドがほしい
+- pathは、/gameとする（ゲームするページを示す）
+- query paramsで、roomId, role=guest をつけること
+
+**✅ 完了（2026-02-12）**: ホスト画面の上側の手札エリアにゲスト招待用URLコピーフィールドの実装が完了しました。
+
+### 実装結果
+
+#### 修正・作成したファイル
+
+1. **client/src/components/Hand/HandArea.tsx**
+   - `guestUrlField?: ReactNode` propを追加
+   - ゲストURLフィールドを表示するための処理を追加
+
+2. **client/src/components/Hand/HandArea.css**
+   - `.hand-guest-url-field`: ゲストURLフィールドのコンテナスタイル
+   - `.guest-url-container`: URLコピーフィールドのコンテナ
+   - `.guest-url-label`: ラベルスタイル
+   - `.guest-url-input-wrapper`: 入力フィールドとボタンのラッパー
+   - `.guest-url-input`: URL表示用の入力フィールド（読み取り専用）
+   - `.guest-url-copy-button`: コピーボタン（緑グラデーション、ホバー効果、コピー完了時の色変更）
+
+3. **client/src/pages/Game.tsx**
+   - `GuestUrlCopyField` コンポーネントを追加（ゲストURLの生成とコピー機能）
+   - ゲストURL生成ロジック: `${window.location.origin}/game?roomId=${roomId}&role=guest`
+   - クリップボードAPIを使用したURLコピー機能
+   - コピー成功時の2秒間のフィードバック表示
+   - ホストかつゲスト未参加時にのみ `guestUrlField` を生成してGameContainerに渡す
+
+4. **client/src/components/Game/GameContainer.tsx**
+   - `guestUrlField?: React.ReactNode` propを追加
+   - 上側の手札エリア（opponent-area）の `HandArea` コンポーネントに `guestUrlField` propを渡す
+
+#### 動作フロー
+
+**ホストの場合:**
+1. ホストがWelcomeページで部屋を作成 → `/game?playerName=xxx&role=host&roomId=xxx&playerId=xxx` に遷移
+2. 上側の手札エリア（ゲスト側）に「ゲスト招待用URL」フィールドが表示される
+3. URLは `/game?roomId={roomId}&role=guest` の形式で生成される
+4. 「コピー」ボタンをクリックすると、URLがクリップボードにコピーされる
+5. コピー成功時、ボタンが「コピー完了!」と表示され、色が変わる（2秒間）
+6. ゲストが参加すると、URLフィールドは非表示になり、ゲスト名が表示される
+
+**URLの形式:**
+```
+http://localhost:5173/game?roomId=abc123&role=guest
+```
+
+#### ビルド確認
+- ✅ ビルド成功: `npm run build` - エラーなし
+- ✅ TypeScriptの型チェック: エラーなし
+
+#### 注意事項
+- ゲストURLは、ホストがゲーム画面に遷移した直後から利用可能
+- ゲストが参加するまで表示され、参加後は自動的に非表示になる
+- URLにはroomIdとrole=guestのみが含まれ、playerNameは含まれない（ゲストが自分で入力する想定）
+- クリップボードAPIが利用できない環境では、コピー機能が動作しない可能性がある
+
 # [x] client側、ホストプレイヤーが/gameに遷移した後の後続処理を実装してほしい
 - usehooks をまずnpm installしてほしい
 - query paramsで引き継いだ、roomId, playerId, role, playerNameを、localStorageにいれてほしい

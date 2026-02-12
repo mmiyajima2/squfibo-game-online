@@ -4,14 +4,14 @@ import { io, Socket } from 'socket.io-client';
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 
 // Socket.ioクライアントのシングルトンインスタンス
-let socket: Socket | null = null;
+let socketInstance: Socket | null = null;
 
 /**
  * Socket.ioクライアントを初期化して取得
  */
 export function getSocket(): Socket {
-  if (!socket) {
-    socket = io(SERVER_URL, {
+  if (!socketInstance) {
+    socketInstance = io(SERVER_URL, {
       autoConnect: false, // 手動接続
       reconnection: true,
       reconnectionAttempts: 3,
@@ -20,37 +20,37 @@ export function getSocket(): Socket {
     });
 
     // 接続イベント
-    socket.on('connect', () => {
-      console.log('[Socket.io] Connected:', socket?.id);
+    socketInstance.on('connect', () => {
+      console.log('[Socket.io] Connected:', socketInstance?.id);
     });
 
     // 切断イベント
-    socket.on('disconnect', (reason) => {
+    socketInstance.on('disconnect', (reason) => {
       console.log('[Socket.io] Disconnected:', reason);
     });
 
     // 接続エラーイベント
-    socket.on('connect_error', (error) => {
+    socketInstance.on('connect_error', (error) => {
       console.error('[Socket.io] Connection error:', error);
     });
 
     // 再接続試行イベント
-    socket.on('reconnect_attempt', (attempt) => {
+    socketInstance.on('reconnect_attempt', (attempt) => {
       console.log('[Socket.io] Reconnect attempt:', attempt);
     });
 
     // 再接続成功イベント
-    socket.on('reconnect', (attempt) => {
+    socketInstance.on('reconnect', (attempt) => {
       console.log('[Socket.io] Reconnected after', attempt, 'attempts');
     });
 
     // 再接続失敗イベント
-    socket.on('reconnect_failed', () => {
+    socketInstance.on('reconnect_failed', () => {
       console.error('[Socket.io] Reconnection failed');
     });
   }
 
-  return socket;
+  return socketInstance;
 }
 
 /**
@@ -67,8 +67,8 @@ export function connectSocket(): void {
  * Socket.ioから切断
  */
 export function disconnectSocket(): void {
-  if (socket && socket.connected) {
-    socket.disconnect();
+  if (socketInstance && socketInstance.connected) {
+    socketInstance.disconnect();
   }
 }
 
@@ -76,7 +76,7 @@ export function disconnectSocket(): void {
  * Socket.ioの接続状態を確認
  */
 export function isSocketConnected(): boolean {
-  return socket?.connected ?? false;
+  return socketInstance?.connected ?? false;
 }
 
 // イベントペイロードの型定義
@@ -131,3 +131,6 @@ export function createRoom(
   console.log('[Socket.io] Creating room with payload:', payload);
   socket.emit('createRoom', payload);
 }
+
+// グローバルにアクセス可能なsocketインスタンス（遅延初期化）
+export const socket = getSocket();

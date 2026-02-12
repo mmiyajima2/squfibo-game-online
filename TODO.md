@@ -1,5 +1,262 @@
 Task
 -----
+
+# [x] client側、ホストプレイヤーが/gameに遷移した後の後続処理を実装してほしい
+- usehooks をまずnpm installしてほしい
+- query paramsで引き継いだ、roomId, playerId, role, playerNameを、localStorageにいれてほしい
+- 下の手札は常にホストプレイヤーとみなし、この段階で手札エリアには準備完了ボタンがある状態にしてほしい
+- まず、実装に入るまえにここに書かれた仕様を分析して、レビューしてほしい
+- レビューした内容はこの見出しのサブ項目に記載してほしい
+
+**✅ 完了（2026-02-12）**: ホストプレイヤーが/gameに遷移した後の準備完了フローの実装が完了しました。
+
+### 実装結果
+
+#### インストールしたパッケージ
+- `usehooks-ts` (v3.1.0): React用カスタムフックライブラリ（localStorageとReact stateの自動同期）
+
+#### 修正・作成したファイル
+
+1. **client/src/pages/Game.tsx** - オンラインモード対応
+   - `useLocalStorage` フックでquery params（roomId, playerId, role, playerName）をlocalStorageに保存
+   - オンラインモード判定（isOnlineMode）
+   - 準備完了状態の管理（isReady, isWaitingForGameStart）
+   - Socket.io イベントリスナー（playerJoined, gameStart）
+   - 準備完了ボタン押下時の処理（`ready` イベント送信）
+   - GameContainerにオンラインモードのpropsを渡す
+
+2. **client/src/components/Game/GameContainer.tsx** - 準備完了UI実装
+   - オンラインモードのprops追加（isOnlineMode, role, playerName, opponentPlayerName, isReady, isWaitingForGameStart, onReady）
+   - プレイヤー名の表示ロジック実装（role固定：host=下側、guest=上側）
+   - 準備完了ボタンの表示判定
+   - オンラインモード時は「新しいゲーム」ボタンを非表示
+
+3. **client/src/components/Hand/HandArea.tsx** - 準備完了ボタン対応
+   - `readyButton?: ReactNode` propを追加
+   - 準備完了ボタンまたは待機メッセージを表示
+
+4. **client/src/components/Hand/HandArea.css** - スタイル追加
+   - `.hand-ready-button`: 準備完了ボタンのコンテナ
+   - `.ready-button`: 準備完了ボタンのスタイル（青グラデーション、ホバー効果）
+   - `.waiting-message`: 待機メッセージのスタイル
+
+5. **client/src/lib/socket.ts** - socket インスタンスのexport追加
+   - `export const socket` を追加して、外部からアクセス可能に
+
+#### 実装方針（ロール固定）
+
+**プレイヤー配置:**
+- **player1（下側）= ホスト**（role === 'host'）
+- **player2（上側）= ゲスト**（role === 'guest'）
+
+**メリット:**
+- サーバーから送られるGameStateをそのまま表示できる
+- 条件分岐が少なくシンプル
+- デバッグが容易
+
+**プレイヤー名表示:**
+- ホストの場合: 下側に「{playerName}（ホスト）」、上側に「{opponentPlayerName}（ゲスト）」
+- ゲストの場合: 上側に「{playerName}（ゲスト）」、下側に「{opponentPlayerName}（ホスト）」
+
+#### 動作フロー
+
+**ホストの場合:**
+1. ホストがWelcomeページで部屋を作成 → `roomCreated` イベント受信
+2. `/game?playerName=xxx&role=host&roomId=xxx&playerId=xxx` に自動遷移
+3. Game.tsxでquery paramsをlocalStorageに保存
+4. 下側の手札エリアに「準備完了」ボタンが表示される
+5. ホストが準備完了ボタンを押す → Socket.ioで`ready`イベント送信
+6. 待機メッセージ「準備完了しました。ゲストプレイヤーの参加を待っています...」が表示される
+7. ゲストが参加 → `playerJoined` イベント受信（上側の手札エリアにゲスト名が表示）
+8. ゲストが準備完了 → `gameStart` イベント受信でゲーム開始
+
+**ゲストの場合:**
+1. ゲストがゲスト用URLにアクセス → 部屋に参加（`joinRoom`）
+2. `/game?playerName=xxx&role=guest&roomId=xxx&playerId=xxx` に遷移
+3. Game.tsxでquery paramsをlocalStorageに保存
+4. 上側の手札エリアに「準備完了」ボタンが表示される
+5. ゲストが準備完了ボタンを押す → Socket.ioで`ready`イベント送信
+6. 待機メッセージ「準備完了しました。相手プレイヤーの準備を待っています...」が表示される
+7. ホストも準備完了 → `gameStart` イベント受信でゲーム開始
+
+#### ビルド確認
+- ✅ ビルド成功: `npm run build` - エラーなし
+- ✅ TypeScriptの型チェック: エラーなし
+
+#### 注意事項
+- 現時点では準備完了画面までの実装
+- ゲーム中のSocket.io連携（カード配置、役申告など）は未実装
+- `gameStart` イベント受信後の実際のゲーム開始処理は今後のタスクで実装予定
+- ゲスト参加フローの実装も今後のタスクで対応予定
+
+---
+
+## Claude レビュー
+
+### 1. 仕様の全体像
+
+このタスクは、ホストプレイヤーが部屋を作成して `/game` に遷移した後の「準備完了フロー」を実装するものです。
+
+**想定される動作フロー:**
+1. ホストがWelcomeページで部屋を作成 → `roomCreated` イベント受信
+2. `/game?playerName=xxx&role=host&roomId=xxx&playerId=xxx` に自動遷移
+3. Game.tsxでquery paramsを取得し、localStorageに保存
+4. GameContainerに「準備完了」ボタンを表示（手札エリア）
+5. ホストが準備完了ボタンを押す → Socket.ioで`ready`イベント送信
+6. ゲストが参加して準備完了したら → `gameStart` イベント受信でゲーム開始
+
+### 2. usehooks-ts パッケージについて
+
+**指示内容:** `usehooks` をnpm installする
+
+**分析:**
+- おそらく `usehooks-ts` のことを指していると推測（TypeScript対応のReactカスタムフックライブラリ）
+- 主な用途: `useLocalStorage` フックを使ってlocalStorageとReact stateを自動同期
+- 代替案: 標準の `useEffect` + `localStorage` でも実装可能だが、usehooks-tsの方が簡潔
+
+**推奨:** `usehooks-ts` をインストールする
+
+### 3. localStorageへの保存について
+
+**指示内容:** query params（roomId, playerId, role, playerName）をlocalStorageに保存
+
+**目的:**
+- ページリロード時にオンラインゲームの状態を復元
+- ネットワーク切断時の再接続に必要な情報を保持
+
+**実装方針:**
+- Game.tsx で useEffect を使ってquery paramsを取得
+- `useLocalStorage` フックで以下のキーに保存:
+  - `squfibo-online-roomId`
+  - `squfibo-online-playerId`
+  - `squfibo-online-role`
+  - `squfibo-online-playerName`
+
+**注意点:**
+- query paramsが存在しない場合（通常のローカルゲーム）は保存しない
+- ゲーム終了時にlocalStorageをクリアする処理も必要（将来実装）
+
+### 4. 準備完了ボタンの表示について
+
+**指示内容:** 下の手札エリアに準備完了ボタンを表示
+
+**現状の課題:**
+- 現在のGameContainerは通常のローカル対戦用のUIで、「新しいゲーム」ボタンが表示される
+- オンラインモードでは、ゲーム開始前に「準備完了」フェーズが必要
+- 準備完了前は盤面を見せるが、カード配置などの操作はできない状態
+
+**実装方針:**
+1. **GameContainerにオンラインモードのpropsを追加**
+   - `isOnlineMode: boolean` - オンラインモードか判定
+   - `role: 'host' | 'guest'` - プレイヤーの役割
+   - `onReady: () => void` - 準備完了ボタン押下時のコールバック
+
+2. **準備完了状態の管理**
+   - Game.tsx で準備完了状態を管理（`isReady: boolean`）
+   - 準備完了ボタンを押すと、Socket.ioで`ready`イベント送信
+   - サーバーから`gameStart`イベントを受信するまで待機
+
+3. **UI の表示切り替え**
+   - `!isReady && isOnlineMode` の場合:
+     - HandArea（下側）に「準備完了」ボタンを表示
+     - 盤面、手札は表示するが、クリックイベントは無効化
+     - 「新しいゲーム」ボタンは非表示
+   - `isReady && isOnlineMode` の場合:
+     - 「準備完了しました。相手プレイヤーの参加を待っています...」と表示
+     - まだ操作はできない
+   - `gameStart` イベント受信後:
+     - 通常のゲームUIに切り替わり、操作可能になる
+
+4. **HandAreaコンポーネントの拡張**
+   - 新しいprop: `readyButton?: ReactNode` を追加
+   - オンラインモードで準備完了前の場合のみ、ボタンを表示
+
+### 5. 設計上の懸念点と推奨事項
+
+**懸念点1: GameContainerの責務が重くなる**
+- 現在のGameContainerは500行以上のコード
+- オンラインモードのロジックを追加すると、さらに複雑化する
+
+**推奨:** 段階的実装で進める
+- Phase 1: まずは最小限の実装（準備完了ボタンのみ）
+- Phase 2: Socket.io連携（将来のタスクで対応）
+- Phase 3: ゲーム状態の同期（将来のタスクで対応）
+
+**懸念点2: 「下の手札は常にホストプレイヤー」という仕様**
+- 仕様では「下の手札は常にホストプレイヤーとみなし」とあるが、これは視覚的な配置の話
+- 実際には role='guest' の場合でも、自分の手札は下に表示すべき
+- つまり「自分視点」でUIを構築する必要がある
+
+**推奨:**
+- 「下側 = 自分（操作可能）」「上側 = 相手（操作不可）」という設計
+- role は関係なく、常に自分の手札は下に表示
+
+**懸念点3: 既存のゲームロジックとの整合性**
+- 現在のGameクラス（domain/Game.ts）はローカル対戦専用
+- オンラインモードでは、サーバーから送られてくるGameStateに基づいてUIを更新する必要がある
+- しかし、このタスクでは「準備完了ボタンの表示」までなので、ゲームロジックの改修は不要
+
+**推奨:**
+- このタスクではUIの表示のみに集中
+- Socket.io連携は最小限（readyイベント送信のみ）
+
+### 6. 実装ステップの提案
+
+#### Step 1: usehooks-ts のインストール
+```bash
+cd client && npm install usehooks-ts
+```
+
+#### Step 2: Game.tsx でlocalStorageに保存
+- query paramsを取得
+- `useLocalStorage` フックで保存
+- GameContainerにオンラインモードのpropsを渡す
+
+#### Step 3: GameContainer.tsx に準備完了UI追加
+- オンラインモードのpropsを受け取る
+- 準備完了前の状態を管理（`isWaitingForGameStart`）
+- HandAreaに準備完了ボタンを表示
+
+#### Step 4: Socket.io連携（最小限）
+- Game.tsx で準備完了ボタン押下時に`ready`イベント送信
+- `gameStart` イベント受信時に状態を更新
+
+### 7. 実装時の注意点
+
+- **既存のローカルゲーム機能を壊さない**
+  - query paramsがない場合は従来通りの動作
+  - オンラインモードとローカルモードを明確に分岐
+
+- **エラーハンドリング**
+  - Socket.io接続失敗時の処理
+  - roomIdが無効な場合の処理
+  - localStorageが使えない環境への対応
+
+- **型安全性**
+  - role は `'host' | 'guest'` の型で定義
+  - localStorageの値は型ガードでバリデーション
+
+### 8. まとめ
+
+このタスクは「準備完了画面」の実装であり、実際のゲームプレイ機能は含まれません。
+
+**実装すべきこと:**
+1. ✅ usehooks-ts のインストール
+2. ✅ query params → localStorage への保存
+3. ✅ 準備完了ボタンの表示（手札エリア）
+4. ✅ Socket.io で `ready` イベント送信
+
+**実装しないこと（将来のタスク）:**
+- ❌ カード配置のSocket.io連携
+- ❌ ゲーム状態の同期
+- ❌ ターン管理のオンライン対応
+- ❌ 役申告のSocket.io連携
+
+**次のタスクで必要になること:**
+- ゲスト参加画面の実装
+- ゲーム中のSocket.io連携
+- 切断・再接続処理
+
 # [x] client側、オンライン版を開始するダイアログの後続処理を実装したい-2
 - ホストがPlayerNameをいれたら、/gameにすぐ遷移してほしい
 - そのプレイヤーネームとrole=hostを、query parameterとして/game画面に引き継いでほしい

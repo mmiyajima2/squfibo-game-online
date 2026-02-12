@@ -18,7 +18,25 @@ import { CommentaryBuilder } from '../../types/Commentary';
 import './GameContainer.css';
 import '../ComboRules/ComboRulesPanel.css';
 
-export function GameContainer() {
+type GameContainerProps = {
+  isOnlineMode?: boolean
+  role?: 'host' | 'guest' | null
+  playerName?: string | null
+  opponentPlayerName?: string | null
+  isReady?: boolean
+  isWaitingForGameStart?: boolean
+  onReady?: () => void
+}
+
+export function GameContainer({
+  isOnlineMode = false,
+  role = null,
+  playerName = null,
+  opponentPlayerName = null,
+  isReady = false,
+  isWaitingForGameStart = false,
+  onReady,
+}: GameContainerProps = {}) {
   const { game, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement } = useGameState();
   const {
     selectedCard,
@@ -400,6 +418,31 @@ export function GameContainer() {
   const winner = game.getWinner();
   const isBoardFull = game.board.isFull();
 
+  // オンラインモードのプレイヤー名表示
+  // role === 'host' の場合: player1 = ホスト（下側）, player2 = ゲスト（上側）
+  // role === 'guest' の場合: player1 = ホスト（下側）, player2 = ゲスト（上側）
+  const player1Label = isOnlineMode && role === 'host'
+    ? `${playerName}（ホスト）`
+    : isOnlineMode && role === 'guest'
+    ? opponentPlayerName
+      ? `${opponentPlayerName}（ホスト）`
+      : 'ホスト'
+    : '下側の手札';
+
+  const player2Label = isOnlineMode && role === 'guest'
+    ? `${playerName}（ゲスト）`
+    : isOnlineMode && role === 'host'
+    ? opponentPlayerName
+      ? `${opponentPlayerName}（ゲスト）`
+      : 'ゲスト（待機中）'
+    : '上側の手札';
+
+  // 準備完了ボタンの表示判定
+  // ホスト（role === 'host'）は下側の手札エリアに表示
+  // ゲスト（role === 'guest'）は上側の手札エリアに表示
+  const showReadyButtonForPlayer1 = isOnlineMode && role === 'host' && !isReady && !isWaitingForGameStart;
+  const showReadyButtonForPlayer2 = isOnlineMode && role === 'guest' && !isReady && !isWaitingForGameStart;
+
   // ゲームオーバー時にモーダルを表示
   useEffect(() => {
     if (isGameOver) {
@@ -445,9 +488,11 @@ export function GameContainer() {
       )}
       <div className="game-header">
         <h1 className="game-title">SquFibo（すくふぃぼ）</h1>
-        <button className="reset-button" onClick={handleResetGame}>
-          新しいゲーム
-        </button>
+        {!isOnlineMode && (
+          <button className="reset-button" onClick={handleResetGame}>
+            新しいゲーム
+          </button>
+        )}
       </div>
 
       <div className="game-content">
@@ -456,10 +501,19 @@ export function GameContainer() {
             cards={hasGameStarted ? player2.hand.getCards() : []}
             selectedCard={isPlayer1Turn ? null : selectedCard}
             onCardClick={handleCardSelect}
-            label="上側の手札"
-            isOpponent={isPlayer1Turn}
-            disabled={!hasGameStarted}
-            hideCardDetails={true}
+            label={player2Label}
+            isOpponent={role !== 'guest'}
+            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart)}
+            hideCardDetails={role !== 'guest'}
+            readyButton={
+              showReadyButtonForPlayer2 ? (
+                <button className="ready-button" onClick={onReady}>
+                  準備完了
+                </button>
+              ) : isWaitingForGameStart && role === 'guest' ? (
+                <div className="waiting-message">準備完了しました。相手プレイヤーの準備を待っています...</div>
+              ) : undefined
+            }
           />
         </div>
 
@@ -525,9 +579,19 @@ export function GameContainer() {
             cards={hasGameStarted ? player1.hand.getCards() : []}
             selectedCard={isPlayer1Turn ? selectedCard : null}
             onCardClick={handleCardSelect}
-            label="下側の手札"
-            isOpponent={!isPlayer1Turn}
-            disabled={!hasGameStarted}
+            label={player1Label}
+            isOpponent={role !== 'host'}
+            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart)}
+            hideCardDetails={role !== 'host'}
+            readyButton={
+              showReadyButtonForPlayer1 ? (
+                <button className="ready-button" onClick={onReady}>
+                  準備完了
+                </button>
+              ) : isWaitingForGameStart && role === 'host' ? (
+                <div className="waiting-message">準備完了しました。ゲストプレイヤーの参加を待っています...</div>
+              ) : undefined
+            }
           />
           <CommentaryArea messages={messages} />
         </div>

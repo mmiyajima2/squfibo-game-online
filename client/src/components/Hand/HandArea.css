@@ -95,3 +95,43 @@
   );
   pointer-events: none;
 }
+
+.hand-ready-button {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.ready-button {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+}
+
+.ready-button:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 6px 8px rgba(37, 99, 235, 0.4);
+  transform: translateY(-2px);
+}
+
+.ready-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.waiting-message {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+}

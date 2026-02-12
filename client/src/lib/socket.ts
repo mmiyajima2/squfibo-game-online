@@ -99,6 +99,17 @@ export interface ErrorPayload {
   details?: any;
 }
 
+export interface JoinRoomPayload {
+  roomId: string;
+  playerName: string;
+}
+
+export interface RoomJoinedPayload {
+  roomId: string;
+  playerId: string;
+  hostPlayerName: string;
+}
+
 /**
  * 部屋を作成する
  */
@@ -130,6 +141,40 @@ export function createRoom(
   const payload: CreateRoomPayload = { playerName };
   console.log('[Socket.io] Creating room with payload:', payload);
   socket.emit('createRoom', payload);
+}
+
+/**
+ * 部屋に参加する（ゲスト）
+ */
+export function joinRoom(
+  roomId: string,
+  playerName: string,
+  onSuccess: (data: RoomJoinedPayload) => void,
+  onError: (error: ErrorPayload) => void
+): void {
+  const socket = getSocket();
+
+  // 接続していない場合は接続
+  if (!socket.connected) {
+    connectSocket();
+  }
+
+  // roomJoinedイベントリスナーを登録（一度だけ実行）
+  socket.once('roomJoined', (data: RoomJoinedPayload) => {
+    console.log('[Socket.io] Room joined:', data);
+    onSuccess(data);
+  });
+
+  // errorイベントリスナーを登録（一度だけ実行）
+  socket.once('error', (error: ErrorPayload) => {
+    console.error('[Socket.io] Error joining room:', error);
+    onError(error);
+  });
+
+  // joinRoomイベントを送信
+  const payload: JoinRoomPayload = { roomId, playerName };
+  console.log('[Socket.io] Joining room with payload:', payload);
+  socket.emit('joinRoom', payload);
 }
 
 // グローバルにアクセス可能なsocketインスタンス（遅延初期化）

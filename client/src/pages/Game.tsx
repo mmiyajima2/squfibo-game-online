@@ -3,7 +3,9 @@ import { useSearchParams } from 'react-router-dom'
 import { useLocalStorage } from 'usehooks-ts'
 import { GameContainer } from '../components/Game/GameContainer'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { JoinRoomDialog } from '../components/JoinRoomDialog'
 import { socket } from '../lib/socket'
+import type { RoomJoinedPayload } from '../lib/socket'
 
 type PlayerRole = 'host' | 'guest'
 
@@ -71,13 +73,44 @@ export function Game() {
     null
   )
 
+  // ゲスト参加用のstate
+  const [guestPlayerName, setGuestPlayerName] = useState<string | null>(null)
+  const [guestPlayerId, setGuestPlayerId] = useState<string | null>(null)
+  const [showJoinDialog, setShowJoinDialog] = useState(false)
+
   // オンラインモード判定
-  const isOnlineMode = !!(playerNameParam && roleParam && roomIdParam && playerIdParam)
+  // ゲストの場合、ダイアログで入力した情報も考慮
+  const actualPlayerName = playerNameParam || guestPlayerName
+  const actualPlayerId = playerIdParam || guestPlayerId
+  const isOnlineMode = !!(actualPlayerName && roleParam && roomIdParam && actualPlayerId)
 
   // 準備完了状態
   const [isReady, setIsReady] = useState(false)
   const [isWaitingForGameStart, setIsWaitingForGameStart] = useState(false)
   const [opponentPlayerName, setOpponentPlayerName] = useState<string | null>(null)
+
+  // ゲスト参加ダイアログの表示判定
+  useEffect(() => {
+    // role=guest かつ roomId があり、playerName がない場合、ダイアログを表示
+    if (roleParam === 'guest' && roomIdParam && !playerNameParam && !guestPlayerName) {
+      setShowJoinDialog(true)
+    }
+  }, [roleParam, roomIdParam, playerNameParam, guestPlayerName])
+
+  // ゲスト参加成功時の処理
+  const handleJoinRoomSuccess = (data: RoomJoinedPayload, playerName: string) => {
+    console.log('部屋に参加しました:', data)
+    setGuestPlayerName(playerName)
+    setGuestPlayerId(data.playerId)
+    setOpponentPlayerName(data.hostPlayerName)
+    setShowJoinDialog(false)
+
+    // localStorageに保存
+    setStoredPlayerName(playerName)
+    setStoredPlayerId(data.playerId)
+    setStoredRole('guest')
+    setStoredRoomId(data.roomId)
+  }
 
   // query paramsをlocalStorageに保存
   useEffect(() => {
@@ -155,10 +188,20 @@ export function Game() {
 
   return (
     <ErrorBoundary>
+      {/* ゲスト参加ダイアログ */}
+      {showJoinDialog && roomIdParam && (
+        <JoinRoomDialog
+          isOpen={showJoinDialog}
+          roomId={roomIdParam}
+          onClose={() => setShowJoinDialog(false)}
+          onSuccess={handleJoinRoomSuccess}
+        />
+      )}
+
       <GameContainer
         isOnlineMode={isOnlineMode}
         role={roleParam}
-        playerName={playerNameParam}
+        playerName={actualPlayerName}
         opponentPlayerName={opponentPlayerName}
         isReady={isReady}
         isWaitingForGameStart={isWaitingForGameStart}

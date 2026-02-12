@@ -1,6 +1,68 @@
 Task
 -----
 
+# [x] client側、ゲストプレイヤーがゲームに参加する流れを実装してほしい
+- ゲストはホストプレイヤーから受け取ったURLにアクセスする
+- /game?roomId=<roomId>&role=guest の2つのパラメータをlocalStorageに設定する
+- 上記2つのquery paramsがあってrole=guestの場合、ダイアログを出す
+- ダイアログには、ゲストのプレイヤー名フィールドと部屋に入るボタンがある
+
+**✅ 完了（2026-02-12）**: ゲストプレイヤーの参加フローの実装が完了しました。
+
+### 実装結果
+
+#### 作成したファイル
+
+1. **client/src/components/JoinRoomDialog.tsx** - ゲスト参加ダイアログ
+   - プレイヤー名入力フォーム（1〜20文字のバリデーション）
+   - ローディング状態とエラー表示
+   - 部屋参加機能（joinRoom イベント送信）
+   - 参加成功時に親コンポーネントにコールバック
+
+2. **client/src/components/JoinRoomDialog.css** - ダイアログスタイル
+   - CreateRoomDialog.css を再利用
+   - 説明文のスタイルを追加
+
+#### 修正したファイル
+
+1. **client/src/lib/socket.ts** - Socket.io 機能拡張
+   - `JoinRoomPayload` 型を追加（roomId, playerName）
+   - `RoomJoinedPayload` 型を追加（roomId, playerId, hostPlayerName）
+   - `joinRoom()` 関数を実装（部屋参加APIのラッパー）
+   - roomJoined イベントリスナーの登録
+
+2. **client/src/pages/Game.tsx** - ゲスト参加フロー統合
+   - JoinRoomDialog コンポーネントをインポート
+   - ゲスト参加用のstate追加（guestPlayerName, guestPlayerId, showJoinDialog）
+   - オンラインモード判定を更新（ダイアログで入力した情報も考慮）
+   - ゲスト参加ダイアログの表示判定（useEffect）
+   - `handleJoinRoomSuccess()` 関数を実装（部屋参加成功時の処理）
+   - localStorageへの保存処理を追加
+
+#### 動作フロー
+
+**ゲストの場合:**
+1. ゲストがホストから受け取ったURL（`/game?roomId=xxx&role=guest`）にアクセス
+2. Game.tsx がマウントされ、query params を確認
+3. role=guest かつ playerName 未設定の場合、JoinRoomDialog を表示
+4. ゲストがプレイヤー名を入力して「部屋に入る」ボタンをクリック
+5. Socket.io で `joinRoom` イベント送信（roomId, playerName）
+6. サーバーから `roomJoined` イベント受信（playerId, hostPlayerName）
+7. ゲスト情報を state と localStorage に保存
+8. ダイアログが閉じられ、ゲーム画面に遷移
+9. ホストに `playerJoined` イベントが送信される（サーバー側）
+10. 準備完了ボタンが表示される
+
+#### ビルド確認
+- ✅ ビルド成功: `npm run build` - エラーなし
+- ✅ TypeScriptの型チェック: エラーなし
+
+#### 注意事項
+- ゲストがURLにアクセスした時点ではまだゲーム画面は操作不可
+- ダイアログでプレイヤー名を入力して部屋に参加する必要がある
+- 部屋に参加後、準備完了ボタンを押すことでゲーム開始を待機
+- localStorageに保存されるため、ページリロード時も状態が復元される
+
 # [x] client側、ホストプレイヤーが/gameに遷移した後の後続処理を実装してほしい-2
 - 遷移後、上のホスト側手札エリアには、ゲストにおくるURLのコピーフィールドがほしい
 - pathは、/gameとする（ゲームするページを示す）

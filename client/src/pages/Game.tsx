@@ -4,9 +4,10 @@ import { useLocalStorage } from 'usehooks-ts'
 import { GameContainer } from '../components/Game/GameContainer'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { JoinRoomDialog } from '../components/JoinRoomDialog'
-import { socket } from '../lib/socket'
 import type { RoomJoinedPayload } from '../lib/socket'
 import { useOnlineGame } from '../hooks/useOnlineGame'
+import { useCommentary } from '../hooks/useCommentary'
+import { useUIState } from '../hooks/useUIState'
 
 type PlayerRole = 'host' | 'guest'
 
@@ -85,6 +86,10 @@ export function Game() {
   const actualPlayerId = playerIdParam || guestPlayerId
   const isOnlineMode = !!(actualPlayerName && roleParam && roomIdParam && actualPlayerId)
 
+  // CommentaryとUIStateのフック（オンラインモード時のみ使用）
+  const commentary = useCommentary()
+  const uiState = useUIState()
+
   // オンラインゲーム用のフック
   const onlineGame = useOnlineGame({
     roomId: roomIdParam,
@@ -92,12 +97,21 @@ export function Game() {
     role: roleParam,
     playerName: actualPlayerName,
     enabled: isOnlineMode,
+    onAddMessage: commentary.addMessage,
+    onShowError: uiState.showError,
   })
 
   // オンラインモードの場合はuseOnlineGameから状態を取得
   const isReady = isOnlineMode ? onlineGame.isReady : false
   const isWaitingForGameStart = isOnlineMode ? onlineGame.isWaitingForGameStart : false
   const opponentPlayerName = isOnlineMode ? onlineGame.opponentPlayerName : null
+
+  // オンラインモード時の初期メッセージ
+  useEffect(() => {
+    if (isOnlineMode && !isReady && !isWaitingForGameStart) {
+      commentary.updateCurrent('「準備完了」ボタンを押してゲームを開始してください');
+    }
+  }, [isOnlineMode, isReady, isWaitingForGameStart, commentary])
 
   // ゲスト参加ダイアログの表示判定
   useEffect(() => {
@@ -131,10 +145,6 @@ export function Game() {
 
       console.log('[Game] Setting guestPlayerId to:', data.playerId)
       setGuestPlayerId(data.playerId)
-
-      const hostName = data.roomInfo?.hostPlayerName || 'Unknown Host'
-      console.log('[Game] Setting opponentPlayerName to:', hostName)
-      setOpponentPlayerName(hostName)
 
       // localStorageに保存
       setStoredPlayerName(playerName)
@@ -208,6 +218,8 @@ export function Game() {
         onReady={handleReady}
         guestUrlField={guestUrlField}
         onlineGameState={isOnlineMode ? onlineGame : undefined}
+        onlineCommentary={isOnlineMode ? commentary : undefined}
+        onlineUIState={isOnlineMode ? uiState : undefined}
       />
     </ErrorBoundary>
   )

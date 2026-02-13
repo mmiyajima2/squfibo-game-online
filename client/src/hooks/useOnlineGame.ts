@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useGameState } from './useGameState';
 import { socket } from '../lib/socket';
 import type { GameStartPayload } from '../lib/socket';
+import type { CommentaryMessage } from '../types/Commentary';
+import { CommentaryBuilder } from '../types/Commentary';
 
 interface UseOnlineGameOptions {
   roomId: string | null;
@@ -9,6 +11,8 @@ interface UseOnlineGameOptions {
   role: 'host' | 'guest' | null;
   playerName: string | null;
   enabled?: boolean; // オンラインモードが有効かどうか
+  onAddMessage?: (message: CommentaryMessage) => void; // ゲームログメッセージを追加するコールバック
+  onShowError?: (message: string) => void; // エラーメッセージを表示するコールバック
 }
 
 interface UseOnlineGameReturn {
@@ -34,6 +38,7 @@ interface UseOnlineGameReturn {
   drawAndPlaceCard: ReturnType<typeof useGameState>['drawAndPlaceCard'];
   resetGame: ReturnType<typeof useGameState>['resetGame'];
   cancelPlacement: ReturnType<typeof useGameState>['cancelPlacement'];
+  initFromServer: ReturnType<typeof useGameState>['initFromServer'];
 }
 
 /**
@@ -43,9 +48,9 @@ interface UseOnlineGameReturn {
 export function useOnlineGame({
   roomId,
   playerId,
-  role,
-  playerName,
   enabled = true,
+  onAddMessage,
+  onShowError,
 }: UseOnlineGameOptions): UseOnlineGameReturn {
   const [isReady, setIsReady] = useState(false);
   const [isWaitingForGameStart, setIsWaitingForGameStart] = useState(false);
@@ -71,12 +76,28 @@ export function useOnlineGame({
         // gameStateが返ってきた場合は両プレイヤーが準備完了している
         setIsWaitingForGameStart(response?.gameState ? false : true);
         console.log('準備完了しました');
+
+        // 準備完了メッセージを表示
+        if (response?.gameState) {
+          // 両方準備完了の場合は、handleGameStartで表示されるのでここでは何もしない
+        } else {
+          // 自分だけ準備完了した場合
+          onAddMessage?.(
+            CommentaryBuilder.createMessage(
+              'turn',
+              '⏳',
+              '準備完了しました。対戦相手の準備を待っています...'
+            )
+          );
+        }
       } else if (response?.code) {
         // エラーレスポンス
-        console.error('準備完了に失敗:', response?.message || response?.code);
-        // TODO: エラーメッセージをユーザーに表示
+        const errorMessage = response?.message || response?.code || '準備完了に失敗しました';
+        console.error('準備完了に失敗:', errorMessage);
+        onShowError?.(errorMessage);
       } else {
         console.error('準備完了に失敗:', response);
+        onShowError?.('準備完了に失敗しました');
       }
     });
   }, [roomId, playerId]);
@@ -90,16 +111,33 @@ export function useOnlineGame({
     // ゲーム開始イベント
     const handleGameStart = (data: GameStartPayload) => {
       console.log('ゲーム開始:', data);
+      console.log('gameState:', data.gameState);
+      console.log('yourPlayerIndex:', data.yourPlayerIndex);
+
       setIsWaitingForGameStart(false);
       setGameStarted(true);
 
       // サーバーから受け取ったゲーム状態をクライアント側に反映
-      gameState.initFromServer(data.gameState);
+      try {
+        gameState.initFromServer(data.gameState);
+        console.log('ゲーム状態の初期化成功');
+      } catch (error) {
+        console.error('ゲーム状態の初期化エラー:', error);
+        onShowError?.('ゲーム状態の初期化に失敗しました');
+        return;
+      }
 
-      // TODO: CommentaryAreaにログを追加
-      // addCommentaryMessage('ゲームを開始します')
-      // const isFirstPlayer = data.yourPlayerIndex === data.gameState.currentPlayerIndex
-      // addCommentaryMessage(isFirstPlayer ? 'あなたの先攻です' : '相手の先攻です')
+      // CommentaryAreaにログを追加
+      onAddMessage?.(CommentaryBuilder.gameStart());
+
+      const isFirstPlayer = data.yourPlayerIndex === data.gameState.currentPlayerIndex;
+      onAddMessage?.(
+        CommentaryBuilder.createMessage(
+          'turn',
+          '👤',
+          isFirstPlayer ? 'あなたの先攻です' : '相手の先攻です'
+        )
+      );
     };
 
     // ゲスト参加通知を受信（ホストのみ）
@@ -111,7 +149,11 @@ export function useOnlineGame({
     // エラーイベント
     const handleError = (error: any) => {
       console.error('Socket.io エラー:', error);
-      // TODO: エラーメッセージをユーザーに表示
+
+      // エラーメッセージをユーザーに表示
+      const errorMessage = error.message || error.code || 'エラーが発生しました';
+      onShowError?.(errorMessage);
+
       // 準備完了状態をリセット
       if (error.code === 'NOT_IN_ROOM' || error.code === 'ROOM_NOT_FOUND') {
         setIsReady(false);

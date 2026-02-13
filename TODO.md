@@ -1,7 +1,17 @@
 Task
 ----
 
-# [ ] client側、「準備完了」ボタンの実装をしてほしい
+# [x] client側、「準備完了」ボタンの実装をしてほしい-2
+- ホスト側、ゲスト側、順番問わずどちらも準備完了を送る
+- ホスト下側手札、ゲストは上側手札で固定とする
+- 両方準備完了の果として、ホスト側にもゲスト側にも手札が配られている
+- また、デッキの残数もサーバから取得して更新されている
+- また、星の数もサーバから取得して更新されている
+- どちらが、先方かもサーバから取得して更新されている
+- 一番下のログエリアに、ゲームを開始します、のログがでる
+- ビジネロジックはカスタムフックによせるようにする
+
+# [x] client側、「準備完了」ボタンの実装をしてほしい
 - ホスト側、ゲスト側、順番問わずどちらも準備完了を送る
 - 両方準備完了の果として、ホスト側にもゲスト側にも手札が配られている
 - また、デッキの残数もサーバから取得して更新されている
@@ -228,8 +238,8 @@ interface GameStateDTO {
 3. ✅ Step 3: `useOnlineGame`フックの作成 - **完了**
 4. ✅ Step 4: Game.tsx の修正 - **完了**
 5. ✅ Step 5: GameContainer.tsx の調整 - **完了**
-6. 🔄 Step 6: CommentaryArea統合（ゲーム開始ログの表示） - **TODO**
-7. 🔄 Step 7: エラーハンドリングの改善 - **TODO**
+6. ✅ Step 6: CommentaryArea統合（ゲーム開始ログの表示） - **完了**
+7. ✅ Step 7: エラーハンドリングの改善 - **完了**
 
 ## 実装完了内容
 
@@ -265,6 +275,20 @@ interface GameStateDTO {
 - `onlineGameState` propsを追加
 - オンラインモードの場合、propsから渡されたgameStateを使用
 - オフラインモードの場合、従来通りローカルのuseGameStateを使用
+
+### 8. CommentaryArea統合
+- `useOnlineGame`に`onAddMessage`コールバックを追加
+- ゲーム開始時に「ゲームを開始します」のログを表示
+- 先攻/後攻の情報をログに表示
+- `Game.tsx`で`useCommentary`を使用し、`useOnlineGame`に渡す
+- `GameContainer.tsx`で`onlineCommentary`をpropsで受け取れるように拡張
+
+### 9. エラーハンドリングの改善
+- `useOnlineGame`に`onShowError`コールバックを追加
+- 準備完了時のエラーをUI表示
+- Socket.ioエラーイベントをUI表示
+- `Game.tsx`で`useUIState`を使用し、`useOnlineGame`に渡す
+- `GameContainer.tsx`で`onlineUIState`をpropsで受け取れるように拡張
 
 **テストシナリオ**:
 1. ホストが部屋を作成

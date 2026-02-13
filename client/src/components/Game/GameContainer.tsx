@@ -29,6 +29,9 @@ type GameContainerProps = {
   guestUrlField?: React.ReactNode
   // オンラインゲームの状態（オプショナル）
   onlineGameState?: ReturnType<typeof import('../../hooks/useGameState').useGameState>
+  // オンライン時のコメンタリーとUIステート（オプショナル）
+  onlineCommentary?: ReturnType<typeof import('../../hooks/useCommentary').useCommentary>
+  onlineUIState?: ReturnType<typeof import('../../hooks/useUIState').useUIState>
 }
 
 export function GameContainer({
@@ -41,12 +44,21 @@ export function GameContainer({
   onReady,
   guestUrlField,
   onlineGameState,
+  onlineCommentary,
+  onlineUIState,
 }: GameContainerProps = {}) {
   const localGameState = useGameState();
+  const localCommentary = useCommentary();
+  const localUIState = useUIState();
 
   // オンラインモードでonlineGameStateが渡された場合はそちらを使用
   const { game, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement } =
     onlineGameState || localGameState;
+
+  // オンラインモードでonlineCommentaryが渡された場合はそちらを使用
+  const { messages, addMessage, updateCurrent, clearMessages } = onlineCommentary || localCommentary;
+
+  // オンラインモードでonlineUIStateが渡された場合はそちらを使用
   const {
     selectedCard,
     selectCard,
@@ -63,8 +75,7 @@ export function GameContainer({
     addPlacementHistory,
     removeLastPlacement,
     clearPlacementHistory
-  } = useUIState();
-  const { messages, addMessage, updateCurrent, clearMessages } = useCommentary();
+  } = onlineUIState || localUIState;
 
   const [showComboRules, setShowComboRules] = useState(true);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
@@ -100,6 +111,12 @@ export function GameContainer({
   // 初回レンダリング時のメッセージ表示
   useEffect(() => {
     if (!hasInitialized.current) {
+      // オンラインモードの場合、メッセージはuseOnlineGameで管理されるのでここでは何もしない
+      if (isOnlineMode) {
+        hasInitialized.current = true;
+        return;
+      }
+
       if (hasGameStarted) {
         addMessage(CommentaryBuilder.gameStart());
         updateCurrent('下側のターンです');
@@ -108,7 +125,7 @@ export function GameContainer({
       }
       hasInitialized.current = true;
     }
-  }, [hasGameStarted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasGameStarted, isOnlineMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // エラーメッセージを3秒後に自動的にクリア
   useEffect(() => {

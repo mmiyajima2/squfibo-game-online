@@ -3,8 +3,6 @@ import {
   GameState,
   CardColor,
   ComboType,
-  getComboRewardStars,
-  getComboDrawCount,
   type GameStateDTO,
   type PlayerDTO,
   type CardDTO,
@@ -488,21 +486,21 @@ export class GameService {
     // 各プレイヤーの手札をチェック
     maskedState.players = maskedState.players.map((player) => {
       if (player.id !== viewerPlayerId) {
-        // 相手プレイヤーの場合：手札の枚数だけ保持し、内容は空配列にする
+        // 相手プレイヤーの場合：手札の枚数だけ保持し、内容は隠す（有効なダミー値を使用）
         const handCount = player.hand.cards.length;
         return {
           ...player,
           hand: {
             cards: new Array(handCount).fill(null).map(() => ({
               id: 'hidden',
-              value: 0 as CardValueType,
+              value: 1 as CardValueType, // 有効なカード値を使用（実際の値は見えないので何でもOK）
               color: CardColor.RED,
             })),
           },
         };
       }
       return player;
-    });
+    }) as [PlayerDTO, PlayerDTO];
 
     return maskedState;
   }

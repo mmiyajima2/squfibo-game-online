@@ -466,8 +466,8 @@ export function GameContainer({
   // 準備完了ボタンの表示判定
   // ホスト（role === 'host'）は下側の手札エリアに表示
   // ゲスト（role === 'guest'）は上側の手札エリアに表示
-  const showReadyButtonForPlayer1 = isOnlineMode && role === 'host' && !isReady && !isWaitingForGameStart;
-  const showReadyButtonForPlayer2 = isOnlineMode && role === 'guest' && !isReady && !isWaitingForGameStart;
+  const showReadyButtonForPlayer1 = isOnlineMode && role === 'host' && !isReady && !isWaitingForGameStart && !hasGameStarted;
+  const showReadyButtonForPlayer2 = isOnlineMode && role === 'guest' && !isReady && !isWaitingForGameStart && !hasGameStarted;
 
   // ゲームオーバー時にモーダルを表示
   useEffect(() => {

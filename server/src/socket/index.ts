@@ -342,6 +342,12 @@ async function handleReady(
 
     logger.info({ roomId: payload.roomId, playerId: payload.playerId }, 'Player is ready');
 
+    // 最初のプレイヤーが準備完了した場合は成功を返す
+    if (!result.bothReady) {
+      callback?.({ success: true } as any);
+      return;
+    }
+
     // 両プレイヤーが準備完了した場合、ゲームを開始
     if (result.bothReady) {
       logger.info({ roomId: payload.roomId }, 'Both players ready, starting game');

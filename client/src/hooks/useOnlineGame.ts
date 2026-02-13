@@ -71,6 +71,7 @@ export function useOnlineGame({
 
     console.log('準備完了を送信:', { roomId, playerId });
     socket.emit('ready', { roomId, playerId }, (response: any) => {
+      console.log('準備完了のレスポンス:', response);
       if (response?.success || response?.gameState) {
         setIsReady(true);
         // gameStateが返ってきた場合は両プレイヤーが準備完了している
@@ -80,8 +81,10 @@ export function useOnlineGame({
         // 準備完了メッセージを表示
         if (response?.gameState) {
           // 両方準備完了の場合は、handleGameStartで表示されるのでここでは何もしない
+          console.log('両方準備完了: handleGameStartでメッセージ表示');
         } else {
           // 自分だけ準備完了した場合
+          console.log('自分だけ準備完了: メッセージを表示');
           onAddMessage?.(
             CommentaryBuilder.createMessage(
               'turn',

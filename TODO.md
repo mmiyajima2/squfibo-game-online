@@ -1,6 +1,281 @@
 Task
 ----
 
+# [x] カードを配置する、ターンを終了する、までの実装をしてほしい
+- ✅ 初手札が配付されるところまではできた
+- ✅ 先プレイヤーがカードを任意のスロットに配置して
+- ✅ ターンを終了したら
+- ✅ 相手方のプレイヤーがみているボードにもそれが反映されること
+
+## 実装内容
+
+### 1. useOnlineGameフックの拡張
+**ファイル**: `client/src/hooks/useOnlineGame.ts`
+
+**追加したSocket.io送信メソッド**:
+- `claimComboToServer(cardId, position, comboPositions)`: 役申告をサーバーに送信
+- `endTurnToServer(cardId, position)`: ターン終了をサーバーに送信
+- `removeCardToServer(position)`: カード除去をサーバーに送信
+
+**追加したSocket.ioリスナー**:
+- `gameStateUpdate`: ゲーム状態更新イベント（相手の操作を自動的に反映）
+- `turnChanged`: ターン切り替えイベント
+- `turnEnded`: ターン終了イベント
+- `comboResolved`: 役解決イベント
+- `cardRemoved`: カード除去イベント
+
+**実装詳細**:
+- 各イベント受信時に、サーバーから受け取ったゲーム状態を`initFromServer()`で反映
+- コメンタリーメッセージを自動的に追加（自分/相手の操作を区別）
+- エラーハンドリングとUIフィードバック
+
+### 2. GameContainerの修正
+**ファイル**: `client/src/components/Game/GameContainer.tsx`
+
+**変更内容**:
+- Props に`claimComboToServer`, `endTurnToServer`, `removeCardToServer`を追加
+- `handleEndTurn()`: オンラインモード時にサーバーに送信
+- `handleClaimCombo()`: オンラインモード時にサーバーに送信
+
+**動作**:
+- オフラインモード: ローカル状態のみ更新（従来通り）
+- オンラインモード: Socket.ioでサーバーに送信し、`gameStateUpdate`イベントで状態を同期
+
+### 3. Game.tsxの修正
+**ファイル**: `client/src/pages/Game.tsx`
+
+**変更内容**:
+- `GameContainer`に`useOnlineGame`のSocket.io送信メソッドを渡す
+- `claimComboToServer`, `endTurnToServer`, `removeCardToServer`をpropsとして渡す
+
+### 4. 動作フロー
+
+#### カード配置 → ターン終了
+```
+1. プレイヤーが手札からカードを選択
+   ↓
+2. ボード上のマスをクリック
+   ↓ handleCellClick()
+3. カードを配置（楽観的更新でローカル状態を更新）
+   ↓
+4. 「ターン終了」ボタンをクリック
+   ↓ handleEndTurn()
+5. endTurnToServer()でサーバーに送信
+   ↓ Socket.io: endTurn イベント
+6. サーバーがゲーム状態を更新
+   ↓ Socket.io: gameStateUpdate イベント
+7. 両プレイヤーが最新のゲーム状態を受信
+   ↓ initFromServer()
+8. 相手側のボードにもカード配置が反映される
+```
+
+#### カード配置 → 役申告
+```
+1. プレイヤーが手札からカードを選択
+   ↓
+2. ボード上のマスをクリック
+   ↓ handleCellClick()
+3. カードを配置（楽観的更新）
+   ↓
+4. ボード上の役を構成するカードを選択
+   ↓
+5. 「役を申告」ボタンをクリック
+   ↓ handleClaimCombo()
+6. クライアント側で役の検証
+   ↓ ComboDetector.checkCombo()
+7. claimComboToServer()でサーバーに送信
+   ↓ Socket.io: claimCombo イベント
+8. サーバーが役を検証し、ゲーム状態を更新
+   ↓ Socket.io: comboResolved イベント
+   ↓ Socket.io: gameStateUpdate イベント
+9. 両プレイヤーが最新のゲーム状態を受信
+   ↓ initFromServer()
+10. 相手側にも役の成立が反映される（星の獲得、カードのドロー）
+```
+
+### 5. 楽観的更新とサーバー同期
+
+**楽観的更新**:
+- カード配置時にローカル状態をすぐに更新（`placeCardFromHand()`）
+- ユーザー体験の向上（レスポンス速度）
+
+**サーバー同期**:
+- `endTurn`または`claimCombo`イベント送信時に、サーバーが正式な状態を計算
+- `gameStateUpdate`イベント受信時に、サーバー側の正式な状態で上書き（`initFromServer()`）
+- サーバー側の検証により、不正な操作を防止
+
+### 6. コメンタリーメッセージ
+
+**自動的に追加されるメッセージ**:
+- ターン切り替え: 「あなたのターンです」/ 「相手のターンです」
+- ターン終了: 「カードを配置してターンを終了しました」/ 「相手がカードを配置しました」
+- 役成立: 「役が成立しました！ 星を○個獲得」/ 「相手が役を成立させました（星○個獲得）」
+- カード除去: 「カードを除去しました」/ 「相手がカードを除去しました」
+
+### 7. エラーハンドリング
+
+**クライアント側の検証**:
+- 1ターンに1枚のみ配置可能
+- カードを配置してからターン終了
+- 役の検証（ComboDetector）
+- 今のターンで配置したカードが役に含まれている
+
+**サーバー側の検証**:
+- 全てのルールを再検証（二重検証）
+- 不正な操作をエラーで返す
+- エラーメッセージをUIに表示
+
+### 8. テストシナリオ
+
+1. ホストが部屋を作成、ゲストが参加
+2. 両方が「準備完了」を押す
+3. ゲームが開始され、手札が配られる
+4. 先攻プレイヤーが手札からカードを選択してボードに配置
+5. 「ターン終了」ボタンを押す
+6. 後攻プレイヤー側のボードにもカード配置が反映される
+7. 後攻プレイヤーがカードを配置
+8. 役を構成するカードを選択して「役を申告」
+9. 先攻プレイヤー側にも役の成立が反映される（星の獲得、カードのドロー）
+10. ターンが切り替わり、ゲームが継続
+
+### 9. 今後の課題
+
+- [ ] 盤面が満杯の時のカード除去処理（`removeCard`イベント）の実装
+- [ ] 切断・再接続時の処理
+- [ ] ゲーム終了時の処理（勝者の決定、結果の表示）
+- [ ] エラー時のリトライ処理
+- [ ] ローディング表示（サーバー応答待ち時）
+
+# [x] 調査依頼: 役を申告したとき、server側で役の成立を判定するロジックがあるか確認してほしい
+- 合わせて、クライアント側にも同様の処理があるか、確認してほしい
+- 調査結果はこの見出しのサブ項目に記載してほしい
+
+## 調査結果
+
+### ✅ サーバー側の役判定ロジック
+**実装場所**: `server/src/services/GameService.ts:310-371`
+
+**メソッド**: `GameService.validateCombo(board, positions, placedPosition)`
+
+**実装内容**:
+```typescript
+static validateCombo(
+  board: BoardStateDTO,
+  positions: PositionDTO[],
+  placedPosition: PositionDTO
+): ComboDTO | null
+```
+
+**判定処理**:
+1. **基本チェック**: 3枚のカードであるか（`positions.length === 3`）
+2. **配置カード確認**: 今回配置したカードが役に含まれているか
+3. **カード存在確認**: 指定された位置に全てのカードが存在するか
+4. **色の一致**: 3枚のカードが全て同じ色か
+5. **隣接性チェック**: カードが縦横に連なっているか（L字、縦一列、横一列）
+6. **役タイプ判定**:
+   - 大役: `1-4-16` (THREE_CARDS)
+   - 小役: 同じ数字3枚 (TRIPLE_MATCH)
+
+**呼び出し箇所**: `server/src/socket/index.ts:817`（`handleClaimCombo`関数内）
+
+**エラーハンドリング**:
+```typescript
+// server/src/socket/index.ts:823-831
+if (!combo) {
+  const error: ErrorPayload = {
+    code: 'INVALID_COMBO',
+    message: '役が成立していません',
+  };
+  callback?.(error);
+  socket.emit('error', error);
+  return;
+}
+```
+
+---
+
+### ✅ クライアント側の役判定ロジック
+**実装場所**: `client/src/domain/services/ComboDetector.ts:136-169`
+
+**メソッド**: `ComboDetector.checkCombo(cards, positions)`
+
+**実装内容**:
+```typescript
+checkCombo(cards: Card[], positions: Position[]): ComboType | null
+```
+
+**判定処理**:
+1. **基本チェック**: カードと位置の数が一致しているか
+2. **空チェック**: カードが空でないか
+3. **色の一致**: 全てのカードが同じ色か
+4. **3枚役の場合**:
+   - 隣接性チェック: 縦3つ、横3つ、またはL字型
+   - 大役: `1-4-16` (THREE_CARDS)
+   - 小役: 同じ数字3枚 (TRIPLE_MATCH)
+
+**呼び出し箇所**: `client/src/components/Game/GameContainer.tsx:376`（`handleClaimCombo`関数内）
+
+**UIフィードバック**:
+```typescript
+// client/src/components/Game/GameContainer.tsx:378-383
+if (verifiedComboType === null) {
+  showError('おしい！選択したカードは役ではありません');
+  clearBoardCardSelection();
+  return;
+}
+```
+
+---
+
+### 🔍 サーバー側とクライアント側の違い
+
+| 項目 | サーバー側 | クライアント側 |
+|------|-----------|--------------|
+| **判定タイミング** | 役申告時（`claimCombo`イベント受信時） | UI上で役を選択・申告時 |
+| **入力パラメータ** | `board`, `positions`, `placedPosition` | `cards`, `positions` |
+| **配置カードチェック** | ✅ あり（今回配置したカードが含まれているか） | ❌ なし（GameContainer.tsxで別途チェック） |
+| **隣接性チェック** | ✅ `areCardsAdjacent()` メソッド | ✅ `areAdjacentThreeCards()` メソッド |
+| **エラー処理** | Socket.ioイベントでクライアントに通知 | UIでエラーメッセージ表示 |
+| **返り値** | `ComboDTO \| null` | `ComboType \| null` |
+
+---
+
+### 📊 役判定の流れ（オンラインゲーム）
+
+```
+1. プレイヤーがクライアント側で役を選択
+   ↓
+2. クライアント側で事前検証（ComboDetector.checkCombo）
+   ↓ ✅ 検証成功
+3. サーバーに claimCombo イベントを送信
+   ↓
+4. サーバー側で再検証（GameService.validateCombo）
+   ↓ ✅ 検証成功
+5. 役の解決処理（星の付与、カードの除去、カードドロー）
+   ↓
+6. クライアントに gameState 更新を送信
+```
+
+---
+
+### 💡 結論
+
+- ✅ **サーバー側には役の成立を判定するロジックがあります**
+  - `GameService.validateCombo()` で厳格に検証
+  - 不正な役申告を防ぐセキュリティ機能として機能
+
+- ✅ **クライアント側にも同様の処理があります**
+  - `ComboDetector.checkCombo()` でUI上の事前検証
+  - ユーザー体験向上のための即座なフィードバック
+
+- 🔒 **二重検証による安全性**
+  - クライアント側: 不正な操作を防ぎ、UX向上
+  - サーバー側: 最終的な正当性を保証（不正防止）
+
+- ⚠️ **注意点**
+  - クライアント側の検証をバイパスしても、サーバー側で必ず再検証されるため、チート対策は十分
+  - 両方のロジックは似ているが、完全に一致しているわけではない（サーバー側がより厳格）
+
 # [x] client側、ゲスト側について、ホスト側プレイヤーの名前がでてない
 - ホスト側には、ゲスト側のプレイヤー名がでている
 - ゲスト側に、ホストが渡すURLのパラメータに含めるか、部屋にはいった時点、あるいは準備完了時点でホスト側プレイヤーの名前をサーバーからもらうか、APIの責務、疎結合な構成、を観点にして吟味してほしい

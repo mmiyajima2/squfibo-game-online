@@ -32,6 +32,14 @@ type GameContainerProps = {
   // オンライン時のコメンタリーとUIステート（オプショナル）
   onlineCommentary?: ReturnType<typeof import('../../hooks/useCommentary').useCommentary>
   onlineUIState?: ReturnType<typeof import('../../hooks/useUIState').useUIState>
+  // オンライン時のSocket.io送信メソッド（オプショナル）
+  claimComboToServer?: (
+    cardId: string | null,
+    position: Position,
+    comboPositions: Position[]
+  ) => void
+  endTurnToServer?: (cardId: string | null, position: Position) => void
+  removeCardToServer?: (position: Position) => void
 }
 
 export function GameContainer({
@@ -46,6 +54,9 @@ export function GameContainer({
   onlineGameState,
   onlineCommentary,
   onlineUIState,
+  claimComboToServer,
+  endTurnToServer,
+  removeCardToServer: _removeCardToServer,
 }: GameContainerProps = {}) {
   const localGameState = useGameState();
   const localCommentary = useCommentary();
@@ -302,9 +313,21 @@ export function GameContainer({
       return;
     }
 
-    endTurn();
-    clearPlacementHistory();
-    selectCard(null);
+    // オンラインモードの場合はサーバーに送信
+    if (isOnlineMode && endTurnToServer) {
+      const lastPlacement = placementHistory[placementHistory.length - 1];
+      if (lastPlacement) {
+        endTurnToServer(lastPlacement.card.id, lastPlacement.position);
+        // ローカル状態の更新はgameStateUpdateイベントで行われるため、ここでは行わない
+        clearPlacementHistory();
+        selectCard(null);
+      }
+    } else {
+      // オフラインモードの場合はローカル状態を更新
+      endTurn();
+      clearPlacementHistory();
+      selectCard(null);
+    }
   };
 
   const handleResetGame = () => {
@@ -401,29 +424,43 @@ export function GameContainer({
     }
 
     // 正しい役が申告された
-    // 役申告前に現在のプレイヤーを保存（endTurnでターンが切り替わる前に）
-    const claimingPlayer = game.getCurrentPlayer();
-    const combo = new Combo(verifiedComboType, selectedBoardCards, positions);
-    const success = claimCombo(combo);
-
-    if (success) {
-      const comboName = getComboTypeName(verifiedComboType);
-
-      // 役申告の実況は申告したプレイヤーに基づく
-      const comboMessage = claimingPlayer.id === 'player1'
-        ? CommentaryBuilder.lowerPlayerClaimedCombo(comboName)
-        : CommentaryBuilder.upperPlayerClaimedCombo(comboName);
-      addMessage(comboMessage);
-
-
-      clearPlacementHistory();
-      clearBoardCardSelection();
-      clearError();
-      selectCard(null);
-
-      // ターン終了はclaimComboアクション内で自動的に行われる
+    // オンラインモードの場合はサーバーに送信
+    if (isOnlineMode && claimComboToServer) {
+      const lastPlacement = placementHistory[placementHistory.length - 1];
+      if (lastPlacement) {
+        claimComboToServer(lastPlacement.card.id, lastPlacement.position, positions);
+        // ローカル状態の更新はgameStateUpdateイベントで行われるため、ここでは行わない
+        clearPlacementHistory();
+        clearBoardCardSelection();
+        clearError();
+        selectCard(null);
+      }
     } else {
-      showError('役の申告に失敗しました');
+      // オフラインモードの場合はローカル状態を更新
+      // 役申告前に現在のプレイヤーを保存（endTurnでターンが切り替わる前に）
+      const claimingPlayer = game.getCurrentPlayer();
+      const combo = new Combo(verifiedComboType, selectedBoardCards, positions);
+      const success = claimCombo(combo);
+
+      if (success) {
+        const comboName = getComboTypeName(verifiedComboType);
+
+        // 役申告の実況は申告したプレイヤーに基づく
+        const comboMessage = claimingPlayer.id === 'player1'
+          ? CommentaryBuilder.lowerPlayerClaimedCombo(comboName)
+          : CommentaryBuilder.upperPlayerClaimedCombo(comboName);
+        addMessage(comboMessage);
+
+
+        clearPlacementHistory();
+        clearBoardCardSelection();
+        clearError();
+        selectCard(null);
+
+        // ターン終了はclaimComboアクション内で自動的に行われる
+      } else {
+        showError('役の申告に失敗しました');
+      }
     }
   };
 

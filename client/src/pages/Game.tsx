@@ -231,6 +231,9 @@ export function Game() {
         onlineGameState={isOnlineMode ? onlineGame : undefined}
         onlineCommentary={isOnlineMode ? commentary : undefined}
         onlineUIState={isOnlineMode ? uiState : undefined}
+        claimComboToServer={isOnlineMode ? onlineGame.claimComboToServer : undefined}
+        endTurnToServer={isOnlineMode ? onlineGame.endTurnToServer : undefined}
+        removeCardToServer={isOnlineMode ? onlineGame.removeCardToServer : undefined}
       />
     </ErrorBoundary>
   )

@@ -4,6 +4,7 @@ import { socket } from '../lib/socket';
 import type { GameStartPayload } from '../lib/socket';
 import type { CommentaryMessage } from '../types/Commentary';
 import { CommentaryBuilder } from '../types/Commentary';
+import type { Position } from 'squfibo-shared';
 
 interface UseOnlineGameOptions {
   roomId: string | null;
@@ -26,6 +27,40 @@ interface RoomJoinedPayload {
   };
 }
 
+// サーバー → クライアントのペイロード型定義
+interface CardRemovedPayload {
+  playerId: string;
+  position: { row: number; col: number };
+  card: {
+    id: string;
+    value: number;
+    color: string;
+  };
+}
+
+interface ComboResolvedPayload {
+  playerId: string;
+  combo: any; // ComboDTO
+  starsAwarded: number;
+  cardsDrawn: number;
+}
+
+interface TurnEndedPayload {
+  playerId: string;
+  placedCard: any; // CardDTO
+  position: { row: number; col: number };
+}
+
+interface TurnChangedPayload {
+  currentPlayerIndex: 0 | 1;
+  currentPlayerId: string;
+}
+
+interface GameStateUpdatePayload {
+  gameState: any; // GameStateDTO
+  updateType: 'card_placed' | 'card_removed' | 'combo_resolved' | 'turn_changed';
+}
+
 interface UseOnlineGameReturn {
   // オンラインゲーム固有の状態
   isReady: boolean;
@@ -35,6 +70,13 @@ interface UseOnlineGameReturn {
 
   // アクション
   sendReady: () => void;
+  claimComboToServer: (
+    cardId: string | null,
+    position: Position,
+    comboPositions: Position[]
+  ) => void;
+  endTurnToServer: (cardId: string | null, position: Position) => void;
+  removeCardToServer: (position: Position) => void;
 
   // ゲーム状態（useGameStateから）
   game: ReturnType<typeof useGameState>['game'];
@@ -115,7 +157,100 @@ export function useOnlineGame({
         onShowError?.('準備完了に失敗しました');
       }
     });
-  }, [roomId, playerId]);
+  }, [roomId, playerId, onAddMessage, onShowError]);
+
+  /**
+   * 役申告をサーバーに送信
+   */
+  const claimComboToServer = useCallback(
+    (cardId: string | null, position: Position, comboPositions: Position[]) => {
+      if (!roomId || !playerId) {
+        console.error('roomId or playerId is missing');
+        onShowError?.('オンライン接続情報が不足しています');
+        return;
+      }
+
+      const payload = {
+        roomId,
+        playerId,
+        cardId,
+        position: { row: position.row, col: position.col },
+        comboPositions: comboPositions.map((p) => ({ row: p.row, col: p.col })),
+      };
+
+      console.log('役申告を送信:', payload);
+      socket.emit('claimCombo', payload, (response: any) => {
+        if (response?.code) {
+          // エラーレスポンス
+          const errorMessage = response?.message || '役の申告に失敗しました';
+          console.error('役申告エラー:', errorMessage);
+          onShowError?.(errorMessage);
+        }
+      });
+    },
+    [roomId, playerId, onShowError]
+  );
+
+  /**
+   * ターン終了をサーバーに送信
+   */
+  const endTurnToServer = useCallback(
+    (cardId: string | null, position: Position) => {
+      if (!roomId || !playerId) {
+        console.error('roomId or playerId is missing');
+        onShowError?.('オンライン接続情報が不足しています');
+        return;
+      }
+
+      const payload = {
+        roomId,
+        playerId,
+        cardId,
+        position: { row: position.row, col: position.col },
+      };
+
+      console.log('ターン終了を送信:', payload);
+      socket.emit('endTurn', payload, (response: any) => {
+        if (response?.code) {
+          // エラーレスポンス
+          const errorMessage = response?.message || 'ターン終了に失敗しました';
+          console.error('ターン終了エラー:', errorMessage);
+          onShowError?.(errorMessage);
+        }
+      });
+    },
+    [roomId, playerId, onShowError]
+  );
+
+  /**
+   * カード除去をサーバーに送信
+   */
+  const removeCardToServer = useCallback(
+    (position: Position) => {
+      if (!roomId || !playerId) {
+        console.error('roomId or playerId is missing');
+        onShowError?.('オンライン接続情報が不足しています');
+        return;
+      }
+
+      const payload = {
+        roomId,
+        playerId,
+        position: { row: position.row, col: position.col },
+      };
+
+      console.log('カード除去を送信:', payload);
+      socket.emit('removeCard', payload, (response: any) => {
+        if (response?.code) {
+          // エラーレスポンス
+          const errorMessage = response?.message || 'カード除去に失敗しました';
+          console.error('カード除去エラー:', errorMessage);
+          onShowError?.(errorMessage);
+        }
+      });
+    },
+    [roomId, playerId, onShowError]
+  );
 
   /**
    * Socket.ioイベントリスナーの登録
@@ -186,16 +321,80 @@ export function useOnlineGame({
       }
     };
 
+    // ゲーム状態更新イベント
+    const handleGameStateUpdate = (data: GameStateUpdatePayload) => {
+      console.log('ゲーム状態更新:', data);
+      try {
+        gameState.initFromServer(data.gameState);
+        console.log('ゲーム状態を更新しました');
+      } catch (error) {
+        console.error('ゲーム状態更新エラー:', error);
+        onShowError?.('ゲーム状態の更新に失敗しました');
+      }
+    };
+
+    // ターン切り替えイベント
+    const handleTurnChanged = (data: TurnChangedPayload) => {
+      console.log('ターン切り替え:', data);
+      // ゲーム状態更新イベントで自動的に反映されるため、ここでは追加処理のみ
+      const isMyTurn = data.currentPlayerId === playerId;
+      onAddMessage?.(
+        CommentaryBuilder.createMessage(
+          'turn',
+          '🔄',
+          isMyTurn ? 'あなたのターンです' : '相手のターンです'
+        )
+      );
+    };
+
+    // ターン終了イベント
+    const handleTurnEnded = (data: TurnEndedPayload) => {
+      console.log('ターン終了:', data);
+      const isMyAction = data.playerId === playerId;
+      const message = isMyAction
+        ? 'カードを配置してターンを終了しました'
+        : '相手がカードを配置しました';
+      onAddMessage?.(CommentaryBuilder.createMessage('action', '📍', message));
+    };
+
+    // 役解決イベント
+    const handleComboResolved = (data: ComboResolvedPayload) => {
+      console.log('役解決:', data);
+      const isMyAction = data.playerId === playerId;
+      const message = isMyAction
+        ? `役が成立しました！ 星を${data.starsAwarded}個獲得`
+        : `相手が役を成立させました（星${data.starsAwarded}個獲得）`;
+      onAddMessage?.(CommentaryBuilder.createMessage('combo', '⭐', message));
+    };
+
+    // カード除去イベント
+    const handleCardRemoved = (data: CardRemovedPayload) => {
+      console.log('カード除去:', data);
+      const isMyAction = data.playerId === playerId;
+      const message = isMyAction ? 'カードを除去しました' : '相手がカードを除去しました';
+      onAddMessage?.(CommentaryBuilder.createMessage('action', '🗑️', message));
+    };
+
     socket.on('gameStart', handleGameStart);
     socket.on('playerJoined', handlePlayerJoined);
     socket.on('roomJoined', handleRoomJoined);
     socket.on('error', handleError);
+    socket.on('gameStateUpdate', handleGameStateUpdate);
+    socket.on('turnChanged', handleTurnChanged);
+    socket.on('turnEnded', handleTurnEnded);
+    socket.on('comboResolved', handleComboResolved);
+    socket.on('cardRemoved', handleCardRemoved);
 
     return () => {
       socket.off('gameStart', handleGameStart);
       socket.off('playerJoined', handlePlayerJoined);
       socket.off('roomJoined', handleRoomJoined);
       socket.off('error', handleError);
+      socket.off('gameStateUpdate', handleGameStateUpdate);
+      socket.off('turnChanged', handleTurnChanged);
+      socket.off('turnEnded', handleTurnEnded);
+      socket.off('comboResolved', handleComboResolved);
+      socket.off('cardRemoved', handleCardRemoved);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, roomId, playerId, role]);
@@ -209,6 +408,9 @@ export function useOnlineGame({
 
     // アクション
     sendReady,
+    claimComboToServer,
+    endTurnToServer,
+    removeCardToServer,
 
     // ゲーム状態
     ...gameState,

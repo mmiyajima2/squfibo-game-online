@@ -46,16 +46,21 @@ export function JoinRoomDialog({ isOpen, roomId, onClose, onSuccess }: JoinRoomD
     setIsLoading(true);
     setError(null);
 
+    console.log('[JoinRoomDialog] 部屋参加開始:', { roomId, playerName: playerName.trim() });
+
     // 部屋に参加
     const trimmedPlayerName = playerName.trim();
     joinRoom(
       roomId,
       trimmedPlayerName,
       (data: RoomJoinedPayload) => {
+        console.log('[JoinRoomDialog] 参加成功:', data);
         setIsLoading(false);
         onSuccess(data, trimmedPlayerName);
+        console.log('[JoinRoomDialog] onSuccess called');
       },
       (error: ErrorPayload) => {
+        console.error('[JoinRoomDialog] 参加失敗:', error);
         setIsLoading(false);
         setError(error.message || 'エラーが発生しました');
       }

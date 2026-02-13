@@ -3,6 +3,7 @@ import { Game } from '../domain/Game';
 import { Card } from '../domain/entities/Card';
 import type { Position } from 'squfibo-shared';
 import { Combo } from '../domain/services/Combo';
+import type { GameStateDTO } from 'squfibo-shared';
 
 interface GameStateHook {
   game: Game;
@@ -17,6 +18,7 @@ interface GameStateHook {
   drawAndPlaceCard: (position: Position) => Card | null;
   resetGame: (playerGoesFirst?: boolean) => void;
   cancelPlacement: (position: Position) => void;
+  initFromServer: (gameState: GameStateDTO) => void;
 }
 
 type GameAction =
@@ -27,7 +29,8 @@ type GameAction =
   | { type: 'DISCARD_FROM_HAND'; card: Card }
   | { type: 'DRAW_AND_PLACE'; position: Position }
   | { type: 'RESET_GAME'; playerGoesFirst?: boolean }
-  | { type: 'CANCEL_PLACEMENT'; position: Position };
+  | { type: 'CANCEL_PLACEMENT'; position: Position }
+  | { type: 'INIT_FROM_SERVER'; gameState: GameStateDTO };
 
 interface GameStateWrapper {
   game: Game;
@@ -154,6 +157,17 @@ function gameReducer(state: GameStateWrapper, action: GameAction): GameStateWrap
       return { ...state, version: state.version + 1, currentPlayerIndexSnapshot: state.currentPlayerIndexSnapshot, hasGameStarted: state.hasGameStarted };
     }
 
+    case 'INIT_FROM_SERVER': {
+      // サーバーから受け取ったGameStateDTOからGameオブジェクトを構築
+      const game = Game.fromServerState(action.gameState);
+      return {
+        game,
+        version: 0,
+        currentPlayerIndexSnapshot: action.gameState.currentPlayerIndex,
+        hasGameStarted: true,
+      };
+    }
+
     default:
       return state;
   }
@@ -217,6 +231,10 @@ export function useGameState(): GameStateHook {
     dispatch({ type: 'CANCEL_PLACEMENT', position });
   }, []);
 
+  const initFromServer = useCallback((gameState: GameStateDTO) => {
+    dispatch({ type: 'INIT_FROM_SERVER', gameState });
+  }, []);
+
   return {
     game: state.game,
     version: state.version,
@@ -230,5 +248,6 @@ export function useGameState(): GameStateHook {
     drawAndPlaceCard,
     resetGame,
     cancelPlacement,
+    initFromServer,
   };
 }

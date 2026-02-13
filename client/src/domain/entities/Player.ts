@@ -19,6 +19,10 @@ export class Player {
     this._stars += count;
   }
 
+  setStars(count: number): void {
+    this._stars = count;
+  }
+
   drawToHand(card: Card): void {
     this.hand.addCard(card);
   }

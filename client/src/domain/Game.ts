@@ -4,6 +4,7 @@ import { Player } from './entities/Player';
 import { Card } from './entities/Card';
 import type { Position } from 'squfibo-shared';
 import { Combo } from './services/Combo';
+import type { GameStateDTO } from 'squfibo-shared';
 
 export enum GameState {
   PLAYING = 'PLAYING',
@@ -47,6 +48,66 @@ export class Game {
       [],
       GameState.PLAYING
     );
+  }
+
+  /**
+   * サーバーから受け取ったGameStateDTOからGameオブジェクトを構築
+   */
+  static fromServerState(gameStateDTO: GameStateDTO): Game {
+    // Boardの構築
+    const board = new Board();
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const cardDTO = gameStateDTO.board.cells[row][col];
+        if (cardDTO) {
+          const card = new Card(cardDTO.value, cardDTO.color, cardDTO.id);
+          board.placeCard(card, { row, col });
+        }
+      }
+    }
+
+    // Deckの構築（カード枚数のみを管理）
+    // 注: サーバーはdeckCountのみを送信するため、実際のカード内容は不要
+    // 空のデッキを作成し、カウントは外部で管理
+    const deck = new Deck([]);
+
+    // Playersの構築
+    const player1 = new Player(gameStateDTO.players[0].id);
+    player1.setStars(gameStateDTO.players[0].stars);
+    const cards1 = gameStateDTO.players[0].hand.cards.map(
+      cardDTO => new Card(cardDTO.value, cardDTO.color, cardDTO.id)
+    );
+    player1.hand.setCards(cards1);
+
+    const player2 = new Player(gameStateDTO.players[1].id);
+    player2.setStars(gameStateDTO.players[1].stars);
+    const cards2 = gameStateDTO.players[1].hand.cards.map(
+      cardDTO => new Card(cardDTO.value, cardDTO.color, cardDTO.id)
+    );
+    player2.hand.setCards(cards2);
+
+    // Gameオブジェクトの構築
+    const game = new Game(
+      board,
+      deck,
+      [player1, player2],
+      gameStateDTO.currentPlayerIndex,
+      gameStateDTO.totalStars,
+      [], // discardPileは復元不要（カウントのみサーバーが管理）
+      gameStateDTO.gameState === 'PLAYING' ? GameState.PLAYING : GameState.FINISHED
+    );
+
+    // lastAutoDrawnPlayerIdを復元
+    if (gameStateDTO.lastAutoDrawnPlayerId) {
+      game['lastAutoDrawnPlayerId'] = gameStateDTO.lastAutoDrawnPlayerId;
+    }
+
+    // lastPlacedPositionを復元
+    if (gameStateDTO.lastPlacedPosition) {
+      game['lastPlacedPosition'] = gameStateDTO.lastPlacedPosition;
+    }
+
+    return game;
   }
 
   getCurrentPlayer(): Player {

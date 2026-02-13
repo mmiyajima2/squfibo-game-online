@@ -37,4 +37,8 @@ export class Hand {
       return a.value - b.value;
     });
   }
+
+  setCards(cards: Card[]): void {
+    this.cards = [...cards];
+  }
 }

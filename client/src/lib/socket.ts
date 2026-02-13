@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import type { GameStateDTO } from 'squfibo-shared';
 
 // サーバーのURL（環境変数または開発用デフォルト）
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
@@ -107,7 +108,18 @@ export interface JoinRoomPayload {
 export interface RoomJoinedPayload {
   roomId: string;
   playerId: string;
-  hostPlayerName: string;
+  role: 'host' | 'guest';
+  roomInfo: {
+    hostPlayerName: string;
+    guestPlayerName: string | null;
+    status: string;
+  };
+}
+
+export interface GameStartPayload {
+  gameState: GameStateDTO;
+  yourPlayerId: string;
+  yourPlayerIndex: 0 | 1;
 }
 
 /**
@@ -154,27 +166,61 @@ export function joinRoom(
 ): void {
   const socket = getSocket();
 
+  console.log('[Socket.io] joinRoom called, socket connected:', socket.connected);
+
   // 接続していない場合は接続
   if (!socket.connected) {
+    console.log('[Socket.io] Socket not connected, connecting...');
     connectSocket();
+
+    // 接続完了を待つ
+    socket.once('connect', () => {
+      console.log('[Socket.io] Connected, now sending joinRoom');
+      sendJoinRoomRequest();
+    });
+  } else {
+    sendJoinRoomRequest();
   }
 
-  // roomJoinedイベントリスナーを登録（一度だけ実行）
-  socket.once('roomJoined', (data: RoomJoinedPayload) => {
-    console.log('[Socket.io] Room joined:', data);
-    onSuccess(data);
-  });
+  function sendJoinRoomRequest() {
+    console.log('[Socket.io] Setting up joinRoom request');
 
-  // errorイベントリスナーを登録（一度だけ実行）
-  socket.once('error', (error: ErrorPayload) => {
-    console.error('[Socket.io] Error joining room:', error);
-    onError(error);
-  });
+    // joinRoomイベントを送信（コールバック付き）
+    const payload: JoinRoomPayload = { roomId, playerName };
+    console.log('[Socket.io] Emitting joinRoom with payload:', payload);
 
-  // joinRoomイベントを送信
-  const payload: JoinRoomPayload = { roomId, playerName };
-  console.log('[Socket.io] Joining room with payload:', payload);
-  socket.emit('joinRoom', payload);
+    socket.emit('joinRoom', payload, (response: RoomJoinedPayload | ErrorPayload) => {
+      console.log('[Socket.io] joinRoom callback received:', response);
+      console.log('[Socket.io] response type:', typeof response);
+      console.log('[Socket.io] response keys:', Object.keys(response));
+      console.log('[Socket.io] has code?', 'code' in response);
+
+      try {
+        // エラーレスポンスの判定
+        if ('code' in response) {
+          console.error('[Socket.io] Error response:', response);
+          onError(response as ErrorPayload);
+        } else {
+          console.log('[Socket.io] Success response:', response);
+          onSuccess(response as RoomJoinedPayload);
+        }
+      } catch (error) {
+        console.error('[Socket.io] Error in callback:', error);
+        console.error('[Socket.io] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      }
+    });
+
+    // イベントベースのレスポンスもハンドリング（念のため）
+    socket.once('roomJoined', (data: RoomJoinedPayload) => {
+      console.log('[Socket.io] roomJoined event received:', data);
+      // コールバックで既に処理されている場合はスキップ
+    });
+
+    socket.once('error', (error: ErrorPayload) => {
+      console.error('[Socket.io] error event received:', error);
+      // コールバックで既に処理されている場合はスキップ
+    });
+  }
 }
 
 // グローバルにアクセス可能なsocketインスタンス（遅延初期化）

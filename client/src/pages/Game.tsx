@@ -6,6 +6,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { JoinRoomDialog } from '../components/JoinRoomDialog'
 import { socket } from '../lib/socket'
 import type { RoomJoinedPayload } from '../lib/socket'
+import { useOnlineGame } from '../hooks/useOnlineGame'
 
 type PlayerRole = 'host' | 'guest'
 
@@ -84,32 +85,66 @@ export function Game() {
   const actualPlayerId = playerIdParam || guestPlayerId
   const isOnlineMode = !!(actualPlayerName && roleParam && roomIdParam && actualPlayerId)
 
-  // 準備完了状態
-  const [isReady, setIsReady] = useState(false)
-  const [isWaitingForGameStart, setIsWaitingForGameStart] = useState(false)
-  const [opponentPlayerName, setOpponentPlayerName] = useState<string | null>(null)
+  // オンラインゲーム用のフック
+  const onlineGame = useOnlineGame({
+    roomId: roomIdParam,
+    playerId: actualPlayerId,
+    role: roleParam,
+    playerName: actualPlayerName,
+    enabled: isOnlineMode,
+  })
+
+  // オンラインモードの場合はuseOnlineGameから状態を取得
+  const isReady = isOnlineMode ? onlineGame.isReady : false
+  const isWaitingForGameStart = isOnlineMode ? onlineGame.isWaitingForGameStart : false
+  const opponentPlayerName = isOnlineMode ? onlineGame.opponentPlayerName : null
 
   // ゲスト参加ダイアログの表示判定
   useEffect(() => {
+    console.log('[Game] ダイアログ表示判定 useEffect:', {
+      roleParam,
+      roomIdParam,
+      playerNameParam,
+      guestPlayerName,
+      showJoinDialog,
+    })
     // role=guest かつ roomId があり、playerName がない場合、ダイアログを表示
     if (roleParam === 'guest' && roomIdParam && !playerNameParam && !guestPlayerName) {
+      console.log('[Game] ダイアログを表示します')
       setShowJoinDialog(true)
     }
   }, [roleParam, roomIdParam, playerNameParam, guestPlayerName])
 
   // ゲスト参加成功時の処理
   const handleJoinRoomSuccess = (data: RoomJoinedPayload, playerName: string) => {
-    console.log('部屋に参加しました:', data)
-    setGuestPlayerName(playerName)
-    setGuestPlayerId(data.playerId)
-    setOpponentPlayerName(data.hostPlayerName)
-    setShowJoinDialog(false)
+    console.log('[Game] handleJoinRoomSuccess called:', data, playerName)
 
-    // localStorageに保存
-    setStoredPlayerName(playerName)
-    setStoredPlayerId(data.playerId)
-    setStoredRole('guest')
-    setStoredRoomId(data.roomId)
+    try {
+      // ダイアログを最初に閉じる（重要：他の状態更新の前に実行）
+      console.log('[Game] Closing dialog first')
+      setShowJoinDialog(false)
+      console.log('[Game] setShowJoinDialog(false) called')
+
+      // 他の状態を更新
+      console.log('[Game] Setting guestPlayerName to:', playerName)
+      setGuestPlayerName(playerName)
+
+      console.log('[Game] Setting guestPlayerId to:', data.playerId)
+      setGuestPlayerId(data.playerId)
+
+      const hostName = data.roomInfo?.hostPlayerName || 'Unknown Host'
+      console.log('[Game] Setting opponentPlayerName to:', hostName)
+      setOpponentPlayerName(hostName)
+
+      // localStorageに保存
+      setStoredPlayerName(playerName)
+      setStoredPlayerId(data.playerId)
+      setStoredRole('guest')
+      setStoredRoomId(data.roomId)
+      console.log('[Game] All states updated')
+    } catch (error) {
+      console.error('[Game] Error in handleJoinRoomSuccess:', error)
+    }
   }
 
   // query paramsをlocalStorageに保存
@@ -139,46 +174,11 @@ export function Game() {
     setStoredPlayerId,
   ])
 
-  // Socket.io イベントリスナー
-  useEffect(() => {
-    if (!isOnlineMode) return
-
-    // ゲスト参加通知を受信（ホストのみ）
-    const handlePlayerJoined = (data: { playerName: string; playerId: string }) => {
-      console.log('ゲストが参加しました:', data)
-      setOpponentPlayerName(data.playerName)
-    }
-
-    // ゲーム開始通知を受信
-    const handleGameStart = (data: any) => {
-      console.log('ゲーム開始:', data)
-      setIsWaitingForGameStart(false)
-      // TODO: ゲーム状態をサーバーから受け取った状態で初期化
-    }
-
-    socket.on('playerJoined', handlePlayerJoined)
-    socket.on('gameStart', handleGameStart)
-
-    return () => {
-      socket.off('playerJoined', handlePlayerJoined)
-      socket.off('gameStart', handleGameStart)
-    }
-  }, [isOnlineMode])
-
   // 準備完了ボタンの押下処理
   const handleReady = () => {
-    if (!roomIdParam) return
-
-    console.log('準備完了を送信:', { roomId: roomIdParam })
-    socket.emit('ready', { roomId: roomIdParam }, (response: any) => {
-      if (response?.success) {
-        setIsReady(true)
-        setIsWaitingForGameStart(true)
-        console.log('準備完了しました')
-      } else {
-        console.error('準備完了に失敗:', response?.error)
-      }
-    })
+    if (isOnlineMode) {
+      onlineGame.sendReady()
+    }
   }
 
   // ゲストURLフィールド（ホストのみ、ゲスト未参加時に表示）
@@ -207,6 +207,7 @@ export function Game() {
         isWaitingForGameStart={isWaitingForGameStart}
         onReady={handleReady}
         guestUrlField={guestUrlField}
+        onlineGameState={isOnlineMode ? onlineGame : undefined}
       />
     </ErrorBoundary>
   )

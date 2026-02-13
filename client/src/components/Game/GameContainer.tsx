@@ -27,6 +27,8 @@ type GameContainerProps = {
   isWaitingForGameStart?: boolean
   onReady?: () => void
   guestUrlField?: React.ReactNode
+  // オンラインゲームの状態（オプショナル）
+  onlineGameState?: ReturnType<typeof import('../../hooks/useGameState').useGameState>
 }
 
 export function GameContainer({
@@ -38,8 +40,13 @@ export function GameContainer({
   isWaitingForGameStart = false,
   onReady,
   guestUrlField,
+  onlineGameState,
 }: GameContainerProps = {}) {
-  const { game, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement } = useGameState();
+  const localGameState = useGameState();
+
+  // オンラインモードでonlineGameStateが渡された場合はそちらを使用
+  const { game, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement } =
+    onlineGameState || localGameState;
   const {
     selectedCard,
     selectCard,

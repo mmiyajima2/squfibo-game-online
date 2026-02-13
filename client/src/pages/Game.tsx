@@ -78,6 +78,7 @@ export function Game() {
   // ゲスト参加用のstate
   const [guestPlayerName, setGuestPlayerName] = useState<string | null>(null)
   const [guestPlayerId, setGuestPlayerId] = useState<string | null>(null)
+  const [hostPlayerName, setHostPlayerName] = useState<string | null>(null)
   const [showJoinDialog, setShowJoinDialog] = useState(false)
 
   // オンラインモード判定
@@ -104,7 +105,11 @@ export function Game() {
   // オンラインモードの場合はuseOnlineGameから状態を取得
   const isReady = isOnlineMode ? onlineGame.isReady : false
   const isWaitingForGameStart = isOnlineMode ? onlineGame.isWaitingForGameStart : false
-  const opponentPlayerName = isOnlineMode ? onlineGame.opponentPlayerName : null
+  // ゲスト側の場合、handleJoinRoomSuccessで保存したhostPlayerNameを使用
+  // ホスト側の場合、useOnlineGameのopponentPlayerName（playerJoinedイベントから取得）を使用
+  const opponentPlayerName = isOnlineMode
+    ? (roleParam === 'guest' ? hostPlayerName : onlineGame.opponentPlayerName)
+    : null
 
   // オンラインモード時の初期メッセージ
   useEffect(() => {
@@ -145,6 +150,12 @@ export function Game() {
 
       console.log('[Game] Setting guestPlayerId to:', data.playerId)
       setGuestPlayerId(data.playerId)
+
+      // ホストの名前を保存（ゲスト側でホスト名を表示するため）
+      if (data.roomInfo && data.roomInfo.hostPlayerName) {
+        console.log('[Game] Setting hostPlayerName to:', data.roomInfo.hostPlayerName)
+        setHostPlayerName(data.roomInfo.hostPlayerName)
+      }
 
       // localStorageに保存
       setStoredPlayerName(playerName)

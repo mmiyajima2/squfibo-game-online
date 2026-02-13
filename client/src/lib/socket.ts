@@ -209,17 +209,6 @@ export function joinRoom(
         console.error('[Socket.io] Error stack:', error instanceof Error ? error.stack : 'No stack');
       }
     });
-
-    // イベントベースのレスポンスもハンドリング（念のため）
-    socket.once('roomJoined', (data: RoomJoinedPayload) => {
-      console.log('[Socket.io] roomJoined event received:', data);
-      // コールバックで既に処理されている場合はスキップ
-    });
-
-    socket.once('error', (error: ErrorPayload) => {
-      console.error('[Socket.io] error event received:', error);
-      // コールバックで既に処理されている場合はスキップ
-    });
   }
 }
 

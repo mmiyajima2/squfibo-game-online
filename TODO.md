@@ -1,6 +1,29 @@
 Task
 ----
 
+# [x] client側、ゲスト側について、ホスト側プレイヤーの名前がでてない
+- ホスト側には、ゲスト側のプレイヤー名がでている
+- ゲスト側に、ホストが渡すURLのパラメータに含めるか、部屋にはいった時点、あるいは準備完了時点でホスト側プレイヤーの名前をサーバーからもらうか、APIの責務、疎結合な構成、を観点にして吟味してほしい
+
+## 実装内容（修正版）
+- **採用アプローチ**: Game.tsxの`handleJoinRoomSuccess`で`hostPlayerName`を取得して保存
+- **実装箇所**:
+  - `client/src/pages/Game.tsx:81` - `hostPlayerName`のstate追加
+  - `client/src/pages/Game.tsx:150-154` - `handleJoinRoomSuccess`で`hostPlayerName`を保存
+  - `client/src/pages/Game.tsx:108-112` - `opponentPlayerName`の計算ロジック更新
+- **実装詳細**:
+  1. `hostPlayerName`のstateを追加
+  2. `handleJoinRoomSuccess`で`data.roomInfo.hostPlayerName`を保存
+  3. ゲスト側の場合、`hostPlayerName`を`opponentPlayerName`として使用
+  4. ホスト側の場合、`useOnlineGame`の`opponentPlayerName`（playerJoinedイベントから取得）を使用
+- **理由**:
+  - `handleJoinRoomSuccess`が呼ばれた時点では、まだ`guestPlayerId`が未設定のため`isOnlineMode`が`false`
+  - そのため、`useOnlineGame`の`enabled`が`false`となり、`roomJoined`イベントリスナーが登録されない
+  - タイミング問題を回避するため、`handleJoinRoomSuccess`で直接`hostPlayerName`を取得して保存
+- **トレードオフ**:
+  - Socket.ioイベント管理が`useOnlineGame`と`Game.tsx`に分散（疎結合の原則に若干反する）
+  - しかし、実装が確実に動作し、タイミング問題を回避できる
+
 # [x] client側、「準備完了」ボタンの実装をしてほしい-2
 - ホスト側、ゲスト側、順番問わずどちらも準備完了を送る
 - ホスト下側手札、ゲストは上側手札で固定とする

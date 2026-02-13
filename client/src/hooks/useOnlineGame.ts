@@ -15,6 +15,17 @@ interface UseOnlineGameOptions {
   onShowError?: (message: string) => void; // エラーメッセージを表示するコールバック
 }
 
+interface RoomJoinedPayload {
+  roomId: string;
+  playerId: string;
+  role: 'host' | 'guest';
+  roomInfo: {
+    hostPlayerName: string;
+    guestPlayerName: string | null;
+    status: string;
+  };
+}
+
 interface UseOnlineGameReturn {
   // オンラインゲーム固有の状態
   isReady: boolean;
@@ -48,6 +59,7 @@ interface UseOnlineGameReturn {
 export function useOnlineGame({
   roomId,
   playerId,
+  role,
   enabled = true,
   onAddMessage,
   onShowError,
@@ -149,6 +161,16 @@ export function useOnlineGame({
       setOpponentPlayerName(data.playerName);
     };
 
+    // 部屋参加成功通知を受信（ゲストのみ）
+    const handleRoomJoined = (data: RoomJoinedPayload) => {
+      console.log('部屋に参加しました:', data);
+      // ゲスト側の場合、ホストの名前を取得
+      if (role === 'guest' && data.roomInfo.hostPlayerName) {
+        console.log('ホストの名前を設定:', data.roomInfo.hostPlayerName);
+        setOpponentPlayerName(data.roomInfo.hostPlayerName);
+      }
+    };
+
     // エラーイベント
     const handleError = (error: any) => {
       console.error('Socket.io エラー:', error);
@@ -166,15 +188,17 @@ export function useOnlineGame({
 
     socket.on('gameStart', handleGameStart);
     socket.on('playerJoined', handlePlayerJoined);
+    socket.on('roomJoined', handleRoomJoined);
     socket.on('error', handleError);
 
     return () => {
       socket.off('gameStart', handleGameStart);
       socket.off('playerJoined', handlePlayerJoined);
+      socket.off('roomJoined', handleRoomJoined);
       socket.off('error', handleError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, roomId, playerId]);
+  }, [enabled, roomId, playerId, role]);
 
   return {
     // オンラインゲーム固有の状態

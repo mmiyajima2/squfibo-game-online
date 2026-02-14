@@ -2,8 +2,8 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+  color: #2c3e50;
 }
 
 .welcome-header {
@@ -16,7 +16,7 @@
   font-size: 2.8rem;
   font-weight: bold;
   margin: 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
   letter-spacing: 0.05em;
 }
 
@@ -35,12 +35,12 @@
 }
 
 .welcome-description {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 1.2rem 1.5rem;
   margin-bottom: 1.2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   animation: fadeIn 1s ease-out 0.2s both;
 }
 
@@ -86,27 +86,27 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+  box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid white;
+  background: rgba(255, 255, 255, 0.9);
+  color: #4a90e2;
+  border: 2px solid #4a90e2;
   backdrop-filter: blur(10px);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(74, 144, 226, 0.2);
 }
 
 .welcome-links {
@@ -117,17 +117,17 @@
 
 .link-manual {
   display: inline-block;
-  color: white;
+  color: #4a90e2;
   text-decoration: none;
   font-size: 0.95rem;
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.7);
   transition: all 0.3s ease;
 }
 
 .link-manual:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.9);
   transform: translateY(-1px);
 }
 
@@ -137,8 +137,8 @@
 }
 
 .ad-placeholder {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px dashed rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px dashed rgba(0, 0, 0, 0.15);
   border-radius: 12px;
   padding: 3rem 2rem;
   text-align: center;
@@ -162,7 +162,7 @@
 .welcome-footer {
   text-align: center;
   padding: 1rem 1rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
   font-size: 0.85rem;
 }
 
@@ -172,7 +172,7 @@
 }
 
 .contact-link {
-  color: white;
+  color: #4a90e2;
   text-decoration: none;
   transition: opacity 0.3s ease;
 }

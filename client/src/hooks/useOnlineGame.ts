@@ -67,6 +67,7 @@ interface UseOnlineGameReturn {
   isWaitingForGameStart: boolean;
   opponentPlayerName: string | null;
   gameStarted: boolean;
+  yourPlayerIndex: 0 | 1 | null;
 
   // アクション
   sendReady: () => void;
@@ -110,6 +111,7 @@ export function useOnlineGame({
   const [isWaitingForGameStart, setIsWaitingForGameStart] = useState(false);
   const [opponentPlayerName, setOpponentPlayerName] = useState<string | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [yourPlayerIndex, setYourPlayerIndex] = useState<0 | 1 | null>(null);
 
   // ゲーム状態管理
   const gameState = useGameState();
@@ -266,6 +268,7 @@ export function useOnlineGame({
 
       setIsWaitingForGameStart(false);
       setGameStarted(true);
+      setYourPlayerIndex(data.yourPlayerIndex);
 
       // サーバーから受け取ったゲーム状態をクライアント側に反映
       try {
@@ -405,6 +408,7 @@ export function useOnlineGame({
     isWaitingForGameStart,
     opponentPlayerName,
     gameStarted,
+    yourPlayerIndex,
 
     // アクション
     sendReady,

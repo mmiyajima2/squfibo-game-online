@@ -872,13 +872,6 @@ async function handleClaimCombo(
     // 部屋の全員にcomboResolvedイベントを送信
     io.to(payload.roomId).emit('comboResolved', response);
 
-    // ゲーム状態更新イベントを送信
-    const updatePayload: GameStateUpdatePayload = {
-      gameState,
-      updateType: 'combo_resolved',
-    };
-    io.to(payload.roomId).emit('gameStateUpdate', updatePayload);
-
     // ゲーム終了判定
     const endReason = GameService.checkGameEnd(gameState);
 
@@ -928,6 +921,13 @@ async function handleClaimCombo(
         'Turn changed'
       );
     }
+
+    // ゲーム状態更新イベントを送信（ターン切り替え後、またはゲーム終了後）
+    const updatePayload: GameStateUpdatePayload = {
+      gameState,
+      updateType: endReason ? 'combo_resolved' : 'turn_changed',
+    };
+    io.to(payload.roomId).emit('gameStateUpdate', updatePayload);
   } catch (error) {
     logger.error(
       { err: error, roomId: payload.roomId, socketId: socket.id },
@@ -1158,13 +1158,6 @@ async function handleEndTurn(
     // 部屋の全員にturnEndedイベントを送信
     io.to(payload.roomId).emit('turnEnded', response);
 
-    // ゲーム状態更新イベントを送信
-    const updatePayload: GameStateUpdatePayload = {
-      gameState,
-      updateType: 'card_placed',
-    };
-    io.to(payload.roomId).emit('gameStateUpdate', updatePayload);
-
     // ターン変更
     GameService.changeTurn(gameState);
     await GameService.saveGameState(payload.roomId, gameState);
@@ -1175,6 +1168,13 @@ async function handleEndTurn(
     };
 
     io.to(payload.roomId).emit('turnChanged', turnPayload);
+
+    // ゲーム状態更新イベントを送信（ターン切り替え後）
+    const updatePayload: GameStateUpdatePayload = {
+      gameState,
+      updateType: 'turn_changed',
+    };
+    io.to(payload.roomId).emit('gameStateUpdate', updatePayload);
 
     logger.info(
       { roomId: payload.roomId, currentPlayerIndex: gameState.currentPlayerIndex },

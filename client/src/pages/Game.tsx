@@ -228,6 +228,7 @@ export function Game() {
         isWaitingForGameStart={isWaitingForGameStart}
         onReady={handleReady}
         guestUrlField={guestUrlField}
+        yourPlayerIndex={isOnlineMode ? onlineGame.yourPlayerIndex : null}
         onlineGameState={isOnlineMode ? onlineGame : undefined}
         onlineCommentary={isOnlineMode ? commentary : undefined}
         onlineUIState={isOnlineMode ? uiState : undefined}

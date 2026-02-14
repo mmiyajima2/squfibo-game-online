@@ -27,6 +27,7 @@ type GameContainerProps = {
   isWaitingForGameStart?: boolean
   onReady?: () => void
   guestUrlField?: React.ReactNode
+  yourPlayerIndex?: 0 | 1 | null
   // オンラインゲームの状態（オプショナル）
   onlineGameState?: ReturnType<typeof import('../../hooks/useGameState').useGameState>
   // オンライン時のコメンタリーとUIステート（オプショナル）
@@ -51,6 +52,7 @@ export function GameContainer({
   isWaitingForGameStart = false,
   onReady,
   guestUrlField,
+  yourPlayerIndex = null,
   onlineGameState,
   onlineCommentary,
   onlineUIState,
@@ -94,6 +96,19 @@ export function GameContainer({
   const comboDetector = useMemo(() => new ComboDetector(), []);
   const currentPlayer = game.getCurrentPlayer();
   const isPlayer1Turn = currentPlayer.id === 'player1';
+
+  // オンラインモードで自分のターンかどうかを判定
+  const isMyTurn = useMemo(() => {
+    if (!isOnlineMode) {
+      // オフラインモードの場合は常にtrue（両方のプレイヤーを操作可能）
+      return true;
+    }
+    // オンラインモードの場合、yourPlayerIndexを使用して判定
+    if (yourPlayerIndex === null) {
+      return false;
+    }
+    return game.currentPlayerIndex === yourPlayerIndex;
+  }, [isOnlineMode, yourPlayerIndex, game.currentPlayerIndex]);
 
   // 選択されたカードが役を形成しているか検証
   const isValidCombo = useMemo(() => {
@@ -182,6 +197,12 @@ export function GameContainer({
   const handleCardSelect = (card: Card) => {
     if (!hasGameStarted) return;
 
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     if (selectedCard?.equals(card)) {
       selectCard(null);
       clearHighlight();
@@ -206,6 +227,12 @@ export function GameContainer({
   };
 
   const handleDeleteBoardCard = (position: Position) => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     const card = game.board.getCard(position);
     if (!card) {
       showError('そのマスにはカードがありません');
@@ -233,6 +260,12 @@ export function GameContainer({
 
   const handleCellClick = (position: Position) => {
     if (!hasGameStarted) return;
+
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
 
     // 1ターンに1枚のみ配置可能
     if (placementHistory.length >= 1) {
@@ -307,6 +340,12 @@ export function GameContainer({
   };
 
   const handleEndTurn = () => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     // カードを配置していない場合はターン終了できない
     if (placementHistory.length === 0) {
       showError('カードを1枚配置してからターンを終了してください');
@@ -343,6 +382,12 @@ export function GameContainer({
   };
 
   const handleCancelCard = (position: Position) => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     // 配置履歴からこのpositionのカードを探す
     const placement = placementHistory.find(ph => positionEquals(ph.position, position));
 
@@ -373,6 +418,12 @@ export function GameContainer({
 
   // 「役を申告」ボタンを押した時（モーダルなし、直接検証）
   const handleClaimCombo = () => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     if (selectedBoardCards.length === 0) {
       showError('役を構成するカードを盤面から選択してください');
       return;
@@ -562,11 +613,15 @@ export function GameContainer({
         <div className="opponent-area">
           <HandArea
             cards={hasGameStarted ? player2.hand.getCards() : []}
-            selectedCard={isPlayer1Turn ? null : selectedCard}
+            selectedCard={
+              isOnlineMode
+                ? (role === 'guest' ? selectedCard : null)
+                : (isPlayer1Turn ? null : selectedCard)
+            }
             onCardClick={handleCardSelect}
             label={player2Label}
             isOpponent={role !== 'guest'}
-            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart)}
+            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart) || (isOnlineMode && role === 'host') || (isOnlineMode && role === 'guest' && !isMyTurn)}
             hideCardDetails={role !== 'guest'}
             readyButton={
               showReadyButtonForPlayer2 ? (
@@ -598,12 +653,12 @@ export function GameContainer({
                 isValidCombo={isValidCombo}
                 onCellClick={handleCellClick}
                 onCardClick={toggleBoardCardSelection}
-                showDeleteIcons={isBoardFull && !isGameOver && placementHistory.length === 0}
+                showDeleteIcons={isBoardFull && !isGameOver && placementHistory.length === 0 && isMyTurn}
                 onDeleteCard={handleDeleteBoardCard}
                 showCancelIcons={placementHistory.length > 0}
                 onCancelCard={handleCancelCard}
                 placementHistory={placementHistory}
-                disabled={!hasGameStarted}
+                disabled={!hasGameStarted || (isOnlineMode && !isMyTurn)}
               />
               <div className="info-display-area">
                 {isBoardFull && placementHistory.length === 0 && (
@@ -632,7 +687,7 @@ export function GameContainer({
               onClaimCombo={handleClaimCombo}
               onEndTurn={handleEndTurn}
               isGameOver={isGameOver}
-              disabled={!hasGameStarted}
+              disabled={!hasGameStarted || (isOnlineMode && !isMyTurn)}
             />
             {showComboRules ? (
               <ComboRulesPanel onClose={() => setShowComboRules(false)} />
@@ -647,11 +702,15 @@ export function GameContainer({
         <div className="player-area">
           <HandArea
             cards={hasGameStarted ? player1.hand.getCards() : []}
-            selectedCard={isPlayer1Turn ? selectedCard : null}
+            selectedCard={
+              isOnlineMode
+                ? (role === 'host' ? selectedCard : null)
+                : (isPlayer1Turn ? selectedCard : null)
+            }
             onCardClick={handleCardSelect}
             label={player1Label}
             isOpponent={role !== 'host'}
-            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart)}
+            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart) || (isOnlineMode && role === 'guest') || (isOnlineMode && role === 'host' && !isMyTurn)}
             hideCardDetails={role !== 'host'}
             readyButton={
               showReadyButtonForPlayer1 ? (

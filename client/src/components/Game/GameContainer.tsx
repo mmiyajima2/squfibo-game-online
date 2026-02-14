@@ -583,7 +583,13 @@ export function GameContainer({
 
         <div className="game-middle">
           <div className="status-board-commentary-container">
-            <GameStatus game={game} />
+            <GameStatus
+              game={game}
+              isOnlineMode={isOnlineMode}
+              role={role}
+              playerName={playerName}
+              opponentPlayerName={opponentPlayerName}
+            />
             <div className="board-and-info-container">
               <BoardGrid
                 board={game.board}

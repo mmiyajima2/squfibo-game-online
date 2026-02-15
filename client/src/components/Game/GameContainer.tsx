@@ -95,7 +95,11 @@ export function GameContainer({
 
   const comboDetector = useMemo(() => new ComboDetector(), []);
   const currentPlayer = game.getCurrentPlayer();
-  const isPlayer1Turn = currentPlayer.id === 'player1';
+
+  // オンラインモードではインデックスで、オフラインモードではIDでターンを判定
+  const isPlayer1Turn = isOnlineMode
+    ? game.currentPlayerIndex === 0
+    : currentPlayer.id === 'player1';
 
   // オンラインモードで自分のターンかどうかを判定
   const isMyTurn = useMemo(() => {
@@ -163,9 +167,12 @@ export function GameContainer({
     }
   }, [errorMessage, clearError]);
 
-  // ターン切り替えを監視して実況を更新
+  // ターン切り替えを監視して実況を更新（オフラインモードのみ）
   const prevIsPlayer1Turn = useRef(isPlayer1Turn);
   useEffect(() => {
+    // オンラインモードではuseOnlineGameがターン切り替えメッセージを管理するのでスキップ
+    if (isOnlineMode) return;
+
     // 初回レンダリングはスキップ（hasInitialized.currentで判定）
     if (prevIsPlayer1Turn.current !== isPlayer1Turn && hasInitialized.current) {
       const message = isPlayer1Turn
@@ -192,7 +199,7 @@ export function GameContainer({
       clearPlacementHistory();
     }
     prevIsPlayer1Turn.current = isPlayer1Turn;
-  }, [isPlayer1Turn, addMessage, updateCurrent, clearPlacementHistory, game]);
+  }, [isPlayer1Turn, addMessage, updateCurrent, clearPlacementHistory, game, isOnlineMode]);
 
   const handleCardSelect = (card: Card) => {
     if (!hasGameStarted) return;

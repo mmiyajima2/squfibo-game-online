@@ -49,13 +49,22 @@ export function GameStatus({
   const player1Name = getPlayer1Name();
   const player2Name = getPlayer2Name();
 
+  // 現在のターンのプレイヤー名を取得
+  // オンラインモードではインデックスで、オフラインモードではIDで判定
+  const getCurrentPlayerName = () => {
+    if (isOnlineMode) {
+      return game.currentPlayerIndex === 0 ? player1Name : player2Name;
+    }
+    return currentPlayer.id === 'player1' ? player1Name : player2Name;
+  };
+
   return (
     <div className="game-status">
       <div className="status-section">
         <div className="status-item">
           <span className="status-label">現在のターン:</span>
           <span className="status-value current-turn">
-            {currentPlayer.id === 'player1' ? player1Name : player2Name}
+            {getCurrentPlayerName()}
           </span>
         </div>
       </div>
@@ -88,7 +97,14 @@ export function GameStatus({
           <div className="game-over-result">
             {winner ? (
               <span>
-                {winner.id === 'player1' ? player1Name : player2Name}の勝利！
+                {(() => {
+                  // オンラインモードではplayers配列のインデックスで、オフラインモードではIDで判定
+                  if (isOnlineMode) {
+                    const winnerIndex = game.players[0].id === winner.id ? 0 : 1;
+                    return winnerIndex === 0 ? player1Name : player2Name;
+                  }
+                  return winner.id === 'player1' ? player1Name : player2Name;
+                })()}の勝利！
               </span>
             ) : (
               <span>引き分け</span>

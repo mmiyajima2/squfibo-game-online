@@ -83,11 +83,11 @@ export function GameStatus({
       <div className="status-section player-scores">
         <div className="player-score">
           <span className="player-name">{player2Name}</span>
-          <span className="player-stars">⭐ {currentPlayer.id === 'player2' ? currentPlayer.stars : opponent.stars}</span>
+          <span className="player-stars">⭐ {game.players[1].stars}</span>
         </div>
         <div className="player-score">
           <span className="player-name">{player1Name}</span>
-          <span className="player-stars">⭐ {currentPlayer.id === 'player1' ? currentPlayer.stars : opponent.stars}</span>
+          <span className="player-stars">⭐ {game.players[0].stars}</span>
         </div>
       </div>
 

@@ -54,19 +54,7 @@ export function Welcome() {
       </header>
 
       <main className="welcome-main">
-        <section className="welcome-description">
-          <h2>SquFiboとは？</h2>
-          <p>
-            SquFiboは、数字と色を使った戦略的なカードゲームです。
-            <br />
-            同じ色の数字を組み合わせて「役」を作り、
-            <br />
-            より多くの星を獲得したプレイヤーが勝利します。
-          </p>
-          <p>
-            簡単なルールで奥深い戦略が楽しめる、2人対戦型のボードゲームです。
-          </p>
-        </section>
+        <p className="welcome-tagline">数字と色のカードで役を作り、星を多く獲得した方が勝つ2人対戦ボードゲームです。</p>
 
         <section className="welcome-actions">
           <button onClick={handleOpenDialog} className="btn btn-primary btn-large">
@@ -77,9 +65,9 @@ export function Welcome() {
               現在 <span className="room-count-number">{roomCount}</span> / {MAX_ROOMS} 部屋が使用中
             </p>
           )}
-          <Link to="/game" className="btn btn-secondary btn-large">
+          <a href="https://squfibo.buntozu.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-large">
             ブラウザ版で遊ぶ
-          </Link>
+          </a>
         </section>
 
         <section className="welcome-links">

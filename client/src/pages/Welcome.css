@@ -34,28 +34,13 @@
   width: 100%;
 }
 
-.welcome-description {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 1.2rem 1.5rem;
-  margin-bottom: 1.2rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  animation: fadeIn 1s ease-out 0.2s both;
-}
-
-.welcome-description h2 {
-  font-size: 1.4rem;
-  margin-top: 0;
-  margin-bottom: 0.8rem;
+.welcome-tagline {
   text-align: center;
-}
-
-.welcome-description p {
   font-size: 0.95rem;
+  color: #4a6080;
+  margin: 0 0 1.2rem;
   line-height: 1.6;
-  margin: 0.6rem 0;
-  text-align: center;
+  animation: fadeIn 1s ease-out 0.2s both;
 }
 
 .welcome-actions {
@@ -97,16 +82,17 @@
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.9);
-  color: #4a90e2;
-  border: 2px solid #4a90e2;
-  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, #6fabe8 0%, #4a90e2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.25);
+  opacity: 0.85;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 1);
+  opacity: 1;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(74, 144, 226, 0.2);
+  box-shadow: 0 6px 20px rgba(74, 144, 226, 0.35);
 }
 
 .room-count-info {
@@ -223,18 +209,6 @@
 
   .welcome-subtitle {
     font-size: 1rem;
-  }
-
-  .welcome-description {
-    padding: 1rem 1.2rem;
-  }
-
-  .welcome-description h2 {
-    font-size: 1.2rem;
-  }
-
-  .welcome-description p {
-    font-size: 0.9rem;
   }
 
   .btn-large {

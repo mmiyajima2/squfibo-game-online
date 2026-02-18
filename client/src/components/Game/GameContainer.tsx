@@ -26,6 +26,7 @@ type GameContainerProps = {
   isReady?: boolean
   isWaitingForGameStart?: boolean
   onReady?: () => void
+  onLeaveRoom?: () => void
   guestUrlField?: React.ReactNode
   yourPlayerIndex?: 0 | 1 | null
   // オンラインゲームの状態（オプショナル）
@@ -51,6 +52,7 @@ export function GameContainer({
   isReady = false,
   isWaitingForGameStart = false,
   onReady,
+  onLeaveRoom,
   guestUrlField,
   yourPlayerIndex = null,
   onlineGameState,
@@ -612,6 +614,11 @@ export function GameContainer({
         {!isOnlineMode && (
           <button className="reset-button" onClick={handleResetGame}>
             新しいゲーム
+          </button>
+        )}
+        {isOnlineMode && onLeaveRoom && (
+          <button className="reset-button" onClick={onLeaveRoom}>
+            退出
           </button>
         )}
       </div>

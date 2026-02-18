@@ -1,6 +1,56 @@
 Task
 ----
 
+# [x] 現在のゲーム部屋数をウエルカム画面にだしたい
+- ゲームの仕様として、最大89部屋を制限にしてるため
+- サーバからのデータ取得はSocket.ioでなくてもよいとおもっている
+- まずは、この見出しのサブ見出しに設計方針を記載してほしい
+
+## Claudeの意見
+
+### 設計方針
+
+**取得方法: REST API（`GET /api/rooms/count`）**
+
+Socket.ioを使わず、シンプルなREST APIで部屋数を取得する。
+
+#### サーバー側の変更
+
+1. **RoomService.ts に `getRoomCount()` を追加**
+   - RedisのSCANコマンドで `room:*:info` パターンのキーを数える
+   - `KEYS` コマンドは本番環境では非推奨なので `SCAN` を使う
+
+2. **app.ts に `GET /api/rooms/count` エンドポイントを追加**
+   - `{ count: number, max: 89 }` を返す
+
+#### クライアント側の変更
+
+3. **Welcome.tsx でページ表示時に1回 `fetch` する**
+   - `useEffect` でマウント時にAPIを叩く
+   - `"現在 X / 89 部屋が使用中"` のような表示を追加
+   - 30秒ごとのポーリングも追加してリアルタイム性を確保（任意）
+
+#### データフロー
+```
+Welcome.tsx (マウント時)
+  → fetch('/api/rooms/count')
+  → Express endpoint
+  → RoomService.getRoomCount()
+  → Redis SCAN 'room:*:info'
+  → count を返す
+  → UI に表示
+```
+
+#### 実装ファイル
+- `server/src/services/RoomService.ts` - getRoomCount() 追加
+- `server/src/app.ts` - /api/rooms/count エンドポイント追加
+- `client/src/pages/Welcome.tsx` - 部屋数表示 UI 追加
+
+**完了**: ウェルカム画面に部屋数表示を実装しました
+- `RoomService.getRoomCount()`: Redis SCANで `room:*:info` キーを数える
+- `GET /api/rooms/count`: `{ count, max: 89 }` を返すREST APIエンドポイント追加
+- `Welcome.tsx`: マウント時にfetch、30秒ごとにポーリング、`現在 X / 89 部屋が使用中` を表示
+
 # [x] 退出ボタンをおした後の処理を改善してほしい
 - お互いが部屋から退出するようにしてほしい
 - redisの該当部屋のキーを削除してほしい

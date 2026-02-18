@@ -166,11 +166,10 @@ async function handleCreateRoom(
   } catch (error) {
     logger.error({ err: error, socketId: socket.id }, 'Error creating room');
 
-    const errorPayload: ErrorPayload = {
-      code: 'SERVER_ERROR',
-      message: 'サーバーエラーが発生しました',
-      details: error instanceof Error ? error.message : String(error),
-    };
+    const isLimitReached = error instanceof Error && error.message === 'ROOM_LIMIT_REACHED';
+    const errorPayload: ErrorPayload = isLimitReached
+      ? { code: 'ROOM_LIMIT_REACHED', message: '現在部屋が満室です（最大89部屋）。しばらく待ってから再試行してください。' }
+      : { code: 'SERVER_ERROR', message: 'サーバーエラーが発生しました', details: error instanceof Error ? error.message : String(error) };
 
     callback?.(errorPayload);
     socket.emit('error', errorPayload);

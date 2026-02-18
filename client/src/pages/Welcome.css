@@ -109,6 +109,18 @@
   box-shadow: 0 6px 20px rgba(74, 144, 226, 0.2);
 }
 
+.room-count-info {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #6b7c93;
+  margin: 0;
+}
+
+.room-count-number {
+  font-weight: bold;
+  color: #4a90e2;
+}
+
 .welcome-links {
   text-align: center;
   margin-bottom: 1.2rem;

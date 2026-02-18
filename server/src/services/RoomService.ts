@@ -20,6 +20,7 @@ export interface RoomInfo {
 }
 
 const ROOM_TTL_SECONDS = 780; // 13分
+const MAX_ROOMS = 89;
 
 /**
  * Room管理サービス
@@ -39,6 +40,11 @@ export class RoomService {
     playerId: string;
     expiresAt: string;
   }> {
+    const currentCount = await this.getRoomCount();
+    if (currentCount >= MAX_ROOMS) {
+      throw new Error('ROOM_LIMIT_REACHED');
+    }
+
     const redis = getRedisClient();
     const roomId = randomUUID();
     const hostPlayerId = randomUUID();
@@ -227,6 +233,18 @@ export class RoomService {
       bothReady,
       roomInfo,
     };
+  }
+
+  /**
+   * 現在の部屋数を取得
+   */
+  static async getRoomCount(): Promise<number> {
+    const redis = getRedisClient();
+    let count = 0;
+    for await (const _key of redis.scanIterator({ MATCH: 'room:*:info', COUNT: 100 })) {
+      count += 1;
+    }
+    return count;
   }
 
   /**

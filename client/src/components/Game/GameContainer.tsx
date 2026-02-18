@@ -94,6 +94,7 @@ export function GameContainer({
 
   const [showComboRules, setShowComboRules] = useState(true);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const comboDetector = useMemo(() => new ComboDetector(), []);
   const currentPlayer = game.getCurrentPlayer();
@@ -617,7 +618,7 @@ export function GameContainer({
           </button>
         )}
         {isOnlineMode && onLeaveRoom && (
-          <button className="reset-button" onClick={onLeaveRoom}>
+          <button className="reset-button leave-button" onClick={() => setShowLeaveConfirm(true)}>
             退出
           </button>
         )}
@@ -739,6 +740,38 @@ export function GameContainer({
           <CommentaryArea messages={messages} />
         </div>
       </div>
+
+      {showLeaveConfirm && (
+        <div className="leave-confirm-modal">
+          <div className="leave-confirm-content">
+            <h2>退出の確認</h2>
+            <p className="leave-confirm-message">
+              退出すると、<strong>このゲームは消滅します。</strong>
+              <br />
+              相手プレイヤーのゲームも終了します。
+              <br />
+              本当に退出しますか？
+            </p>
+            <div className="leave-confirm-actions">
+              <button
+                className="leave-cancel-button"
+                onClick={() => setShowLeaveConfirm(false)}
+              >
+                キャンセル
+              </button>
+              <button
+                className="leave-confirm-button"
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  onLeaveRoom?.();
+                }}
+              >
+                退出する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

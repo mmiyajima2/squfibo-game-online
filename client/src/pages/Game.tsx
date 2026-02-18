@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useLocalStorage } from 'usehooks-ts'
 import { GameContainer } from '../components/Game/GameContainer'
 import { ErrorBoundary } from '../components/ErrorBoundary'
@@ -50,6 +50,7 @@ function GuestUrlCopyField({ roomId }: { roomId: string }) {
 
 export function Game() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   // query parameterを取得
   const playerNameParam = searchParams.get('playerName')
@@ -91,6 +92,15 @@ export function Game() {
   const commentary = useCommentary()
   const uiState = useUIState()
 
+  // 相手が退出した際の処理
+  const handleOpponentLeft = () => {
+    setStoredPlayerName(null)
+    setStoredPlayerId(null)
+    setStoredRole(null)
+    setStoredRoomId(null)
+    navigate('/')
+  }
+
   // オンラインゲーム用のフック
   const onlineGame = useOnlineGame({
     roomId: roomIdParam,
@@ -100,6 +110,7 @@ export function Game() {
     enabled: isOnlineMode,
     onAddMessage: commentary.addMessage,
     onShowError: uiState.showError,
+    onOpponentLeft: handleOpponentLeft,
   })
 
   // オンラインモードの場合はuseOnlineGameから状態を取得
@@ -202,6 +213,23 @@ export function Game() {
     }
   }
 
+  // 退出ボタンの押下処理
+  const handleLeaveRoom = () => {
+    if (isOnlineMode) {
+      // localStorageをクリア
+      setStoredPlayerName(null)
+      setStoredPlayerId(null)
+      setStoredRole(null)
+      setStoredRoomId(null)
+
+      // leaveRoomイベントをサーバーに送信
+      onlineGame.leaveRoom()
+
+      // Welcomeページに遷移
+      navigate('/')
+    }
+  }
+
   // ゲストURLフィールド（ホストのみ、ゲスト未参加時に表示）
   const guestUrlField = isOnlineMode && roleParam === 'host' && !opponentPlayerName && roomIdParam
     ? <GuestUrlCopyField roomId={roomIdParam} />
@@ -227,6 +255,7 @@ export function Game() {
         isReady={isReady}
         isWaitingForGameStart={isWaitingForGameStart}
         onReady={handleReady}
+        onLeaveRoom={isOnlineMode ? handleLeaveRoom : undefined}
         guestUrlField={guestUrlField}
         yourPlayerIndex={isOnlineMode ? onlineGame.yourPlayerIndex : null}
         onlineGameState={isOnlineMode ? onlineGame : undefined}

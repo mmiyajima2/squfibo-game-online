@@ -1,6 +1,24 @@
 Task
 ----
 
+# [x] 退出ボタンをおした後の処理を改善してほしい
+- お互いが部屋から退出するようにしてほしい
+- redisの該当部屋のキーを削除してほしい
+- **完了**: 退出後の処理を改善しました
+  - サーバー: `handleLeaveRoom` で `io.to(roomId).emit('playerLeft', ...)` に変更し、退出したプレイヤー自身にも通知
+  - サーバー: `RoomService.deleteRoom(roomId)` でRedisのルーム情報とゲーム状態キーを削除
+  - クライアント: `useOnlineGame.ts` に `playerLeft` イベントリスナーを追加し、相手退出時に `onOpponentLeft` コールバックを呼び出す
+  - クライアント: `Game.tsx` に `handleOpponentLeft` を追加し、localStorage クリアと Welcome ページへの遷移を実装
+
+# [x] ゲーム画面で、退出ボタンが欲しい
+- 退出ボタンは上のメニュー領域がよい
+- leaveRoom イベントをコールする実装とする
+- **完了**: オンラインモード時に退出ボタンを実装しました
+  - useOnlineGame.tsにleaveRoom関数を追加
+  - GameContainer.tsxのヘッダー部分に退出ボタンを追加（オンラインモードのみ表示）
+  - Game.tsxでleaveRoom呼び出し後、Welcomeページに遷移する処理を追加
+  - 退出時にlocalStorageもクリアするように実装
+
 # [x] バグ: 上側が、赤9のL字で役を申告したが、解決効果がおかしい
 - 3枚除去はうまくいってる
 - 手札が1枚増えるもうまくいってる

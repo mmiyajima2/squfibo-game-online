@@ -14,6 +14,7 @@ interface UseOnlineGameOptions {
   enabled?: boolean; // オンラインモードが有効かどうか
   onAddMessage?: (message: CommentaryMessage) => void; // ゲームログメッセージを追加するコールバック
   onShowError?: (message: string) => void; // エラーメッセージを表示するコールバック
+  onOpponentLeft?: () => void; // 相手が退出した際のコールバック
 }
 
 interface RoomJoinedPayload {
@@ -71,6 +72,7 @@ interface UseOnlineGameReturn {
 
   // アクション
   sendReady: () => void;
+  leaveRoom: () => void;
   claimComboToServer: (
     cardId: string | null,
     position: Position,
@@ -106,6 +108,7 @@ export function useOnlineGame({
   enabled = true,
   onAddMessage,
   onShowError,
+  onOpponentLeft,
 }: UseOnlineGameOptions): UseOnlineGameReturn {
   const [isReady, setIsReady] = useState(false);
   const [isWaitingForGameStart, setIsWaitingForGameStart] = useState(false);
@@ -160,6 +163,30 @@ export function useOnlineGame({
       }
     });
   }, [roomId, playerId, onAddMessage, onShowError]);
+
+  /**
+   * 部屋から退出
+   */
+  const leaveRoom = useCallback(() => {
+    if (!roomId || !playerId) {
+      console.error('roomId or playerId is missing');
+      return;
+    }
+
+    console.log('部屋から退出:', { roomId, playerId });
+    socket.emit('leaveRoom', { roomId, playerId }, (response: any) => {
+      console.log('退出のレスポンス:', response);
+      if (response?.success) {
+        console.log('部屋から退出しました');
+        // 退出成功後の処理は親コンポーネント（Game.tsx）で行う
+      } else if (response?.code) {
+        // エラーレスポンス
+        const errorMessage = response?.message || response?.code || '退出に失敗しました';
+        console.error('退出に失敗:', errorMessage);
+        onShowError?.(errorMessage);
+      }
+    });
+  }, [roomId, playerId, onShowError]);
 
   /**
    * 役申告をサーバーに送信
@@ -378,6 +405,18 @@ export function useOnlineGame({
       onAddMessage?.(CommentaryBuilder.createMessage('action', '🗑️', message));
     };
 
+    // 相手退出イベント
+    const handlePlayerLeft = (data: { playerId: string; playerName: string }) => {
+      console.log('相手が退出しました:', data);
+      const isMyAction = data.playerId === playerId;
+      if (!isMyAction) {
+        onAddMessage?.(
+          CommentaryBuilder.createMessage('turn', '🚪', `${data.playerName} が退出しました`)
+        );
+        onOpponentLeft?.();
+      }
+    };
+
     socket.on('gameStart', handleGameStart);
     socket.on('playerJoined', handlePlayerJoined);
     socket.on('roomJoined', handleRoomJoined);
@@ -387,6 +426,7 @@ export function useOnlineGame({
     socket.on('turnEnded', handleTurnEnded);
     socket.on('comboResolved', handleComboResolved);
     socket.on('cardRemoved', handleCardRemoved);
+    socket.on('playerLeft', handlePlayerLeft);
 
     return () => {
       socket.off('gameStart', handleGameStart);
@@ -398,6 +438,7 @@ export function useOnlineGame({
       socket.off('turnEnded', handleTurnEnded);
       socket.off('comboResolved', handleComboResolved);
       socket.off('cardRemoved', handleCardRemoved);
+      socket.off('playerLeft', handlePlayerLeft);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, roomId, playerId, role]);
@@ -412,6 +453,7 @@ export function useOnlineGame({
 
     // アクション
     sendReady,
+    leaveRoom,
     claimComboToServer,
     endTurnToServer,
     removeCardToServer,

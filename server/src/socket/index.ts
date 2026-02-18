@@ -1202,7 +1202,7 @@ async function handleEndTurn(
  * 対戦部屋から退出します
  */
 async function handleLeaveRoom(
-  _io: Server,
+  io: Server,
   socket: Socket,
   payload: LeaveRoomPayload,
   callback?: (response: { success: boolean } | ErrorPayload) => void
@@ -1274,21 +1274,24 @@ async function handleLeaveRoom(
 
     logger.info({ roomId: payload.roomId, playerId: payload.playerId, playerName }, 'Player leaving room');
 
-    // Socket.IOルームから退出
-    socket.leave(payload.roomId);
-
-    // 部屋の他のメンバーに通知
+    // 部屋の他のメンバーに通知（Socket.IOルームから退出する前に送信）
     const leftPayload: PlayerLeftPayload = {
       playerId: payload.playerId,
       playerName,
     };
 
-    socket.to(payload.roomId).emit('playerLeft', leftPayload);
+    io.to(payload.roomId).emit('playerLeft', leftPayload);
+
+    // Socket.IOルームから退出
+    socket.leave(payload.roomId);
 
     // callbackでレスポンスを返す
     callback?.({ success: true });
 
-    logger.info({ roomId: payload.roomId, playerId: payload.playerId, playerName }, 'Player left room');
+    // Redisからルームデータとゲームデータを削除
+    await RoomService.deleteRoom(payload.roomId);
+
+    logger.info({ roomId: payload.roomId, playerId: payload.playerId, playerName }, 'Player left room, room deleted');
   } catch (error) {
     logger.error(
       { err: error, roomId: payload.roomId, socketId: socket.id },

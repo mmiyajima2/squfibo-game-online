@@ -54,7 +54,7 @@ export function Welcome() {
       </header>
 
       <main className="welcome-main">
-        <p className="welcome-tagline">数字と色のカードで役を作り、星を多く獲得した方が勝つ2人対戦ボードゲームです。</p>
+        <p className="welcome-tagline">数字と色のカードで役を作り、星をたくさん集めたほうが勝ち！<br />小学生から楽しめる2人対戦ボードゲームです。</p>
 
         <section className="welcome-actions">
           <button onClick={handleOpenDialog} className="btn btn-primary btn-large">

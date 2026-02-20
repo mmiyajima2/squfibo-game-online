@@ -594,7 +594,7 @@ export function GameContainer({
             <h2>ゲーム終了！</h2>
             {winner ? (
               <p className="winner-text">
-                {winner.id === 'player1' ? '下側' : '上側'}の勝ち！
+                {player1.id === winner.id ? '下側' : '上側'}の勝ち！
               </p>
             ) : (
               <p className="winner-text">引き分け！</p>

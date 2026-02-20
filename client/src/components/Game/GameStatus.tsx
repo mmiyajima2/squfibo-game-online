@@ -17,7 +17,6 @@ export function GameStatus({
   opponentPlayerName = null
 }: GameStatusProps) {
   const currentPlayer = game.getCurrentPlayer();
-  const opponent = game.getOpponent();
   const isGameOver = game.isGameOver();
   const winner = game.getWinner();
 
@@ -53,7 +52,7 @@ export function GameStatus({
   // オンラインモードではインデックスで、オフラインモードではIDで判定
   const getCurrentPlayerName = () => {
     if (isOnlineMode) {
-      return game.currentPlayerIndex === 0 ? player1Name : player2Name;
+      return game.getCurrentPlayerIndex() === 0 ? player1Name : player2Name;
     }
     return currentPlayer.id === 'player1' ? player1Name : player2Name;
   };

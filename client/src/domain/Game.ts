@@ -109,6 +109,10 @@ export class Game {
     return game;
   }
 
+  getCurrentPlayerIndex(): 0 | 1 {
+    return this.currentPlayerIndex;
+  }
+
   getCurrentPlayer(): Player {
     return this.players[this.currentPlayerIndex];
   }

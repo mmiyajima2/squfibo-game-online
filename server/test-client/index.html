@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SquFibo Room Creation Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .status.info {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      border: 1px solid #1976d2;
+    }
+
+    .status.success {
+      background-color: #e8f5e9;
+      color: #388e3c;
+      border: 1px solid #388e3c;
+    }
+
+    .status.error {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #c62828;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .result-item {
+      margin-bottom: 10px;
+    }
+
+    .result-label {
+      font-weight: bold;
+      color: #555;
+    }
+
+    .result-value {
+      margin-top: 5px;
+      padding: 8px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+
+    .url-link {
+      color: #1976d2;
+      text-decoration: none;
+    }
+
+    .url-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 SquFibo 部屋作成テスト</h1>
+
+    <div class="form-group">
+      <label for="serverUrl">サーバーURL:</label>
+      <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+    </div>
+
+    <div class="form-group">
+      <label for="playerName">プレイヤー名:</label>
+      <input type="text" id="playerName" placeholder="テストプレイヤー" maxlength="20">
+    </div>
+
+    <button id="createRoomBtn">部屋を作成</button>
+
+    <div id="status" class="status" style="display: none;"></div>
+
+    <div id="result" class="result">
+      <h3>作成結果:</h3>
+      <div class="result-item">
+        <div class="result-label">部屋ID:</div>
+        <div class="result-value" id="roomId"></div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">プレイヤーID:</div>
+        <div class="result-value" id="playerId"></div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">ホストURL:</div>
+        <div class="result-value">
+          <a id="hostUrl" class="url-link" href="" target="_blank"></a>
+        </div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">ゲストURL:</div>
+        <div class="result-value">
+          <a id="guestUrl" class="url-link" href="" target="_blank"></a>
+        </div>
+      </div>
+      <div class="result-item">
+        <div class="result-label">有効期限:</div>
+        <div class="result-value" id="expiresAt"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO クライアントライブラリ -->
+  <script src="https://cdn.socket.io/4.8.2/socket.io.min.js"></script>
+
+  <script>
+    let socket = null;
+
+    const statusDiv = document.getElementById('status');
+    const resultDiv = document.getElementById('result');
+    const createRoomBtn = document.getElementById('createRoomBtn');
+
+    // ステータス表示
+    function showStatus(message, type = 'info') {
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+      statusDiv.style.display = 'block';
+    }
+
+    // 結果表示
+    function showResult(data) {
+      document.getElementById('roomId').textContent = data.roomId;
+      document.getElementById('playerId').textContent = data.playerId;
+      document.getElementById('hostUrl').textContent = data.hostUrl;
+      document.getElementById('hostUrl').href = data.hostUrl;
+      document.getElementById('guestUrl').textContent = data.guestUrl;
+      document.getElementById('guestUrl').href = data.guestUrl;
+      document.getElementById('expiresAt').textContent = new Date(data.expiresAt).toLocaleString('ja-JP');
+      resultDiv.classList.add('show');
+    }
+
+    // Socket.IO接続
+    function connectSocket(serverUrl) {
+      if (socket) {
+        socket.disconnect();
+      }
+
+      showStatus('サーバーに接続中...', 'info');
+
+      socket = io(serverUrl, {
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('connect', () => {
+        console.log('Connected to server');
+        showStatus('サーバーに接続しました', 'success');
+        createRoomBtn.disabled = false;
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Disconnected from server');
+        showStatus('サーバーから切断されました', 'error');
+        createRoomBtn.disabled = true;
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        showStatus(`接続エラー: ${error.message}`, 'error');
+        createRoomBtn.disabled = true;
+      });
+
+      socket.on('error', (error) => {
+        console.error('Server error:', error);
+        showStatus(`エラー: ${error.message} (${error.code})`, 'error');
+        createRoomBtn.disabled = false;
+      });
+
+      socket.on('roomCreated', (data) => {
+        console.log('Room created:', data);
+        showStatus('部屋を作成しました！', 'success');
+        showResult(data);
+        createRoomBtn.disabled = false;
+      });
+    }
+
+    // 部屋作成
+    function createRoom() {
+      const playerName = document.getElementById('playerName').value.trim();
+
+      if (!playerName) {
+        showStatus('プレイヤー名を入力してください', 'error');
+        return;
+      }
+
+      if (playerName.length < 1 || playerName.length > 20) {
+        showStatus('プレイヤー名は1〜20文字である必要があります', 'error');
+        return;
+      }
+
+      if (!socket || !socket.connected) {
+        showStatus('サーバーに接続されていません', 'error');
+        return;
+      }
+
+      createRoomBtn.disabled = true;
+      resultDiv.classList.remove('show');
+      showStatus('部屋を作成中...', 'info');
+
+      socket.emit('createRoom', { playerName }, (response) => {
+        console.log('Server response:', response);
+
+        if (response.code) {
+          // エラーレスポンス
+          showStatus(`エラー: ${response.message} (${response.code})`, 'error');
+          createRoomBtn.disabled = false;
+        } else {
+          // 成功レスポンス
+          showStatus('部屋を作成しました！', 'success');
+          showResult(response);
+          createRoomBtn.disabled = false;
+        }
+      });
+    }
+
+    // イベントリスナー
+    createRoomBtn.addEventListener('click', createRoom);
+
+    document.getElementById('serverUrl').addEventListener('change', (e) => {
+      connectSocket(e.target.value);
+    });
+
+    // 初期接続
+    const initialServerUrl = document.getElementById('serverUrl').value;
+    connectSocket(initialServerUrl);
+  </script>
+</body>
+</html>

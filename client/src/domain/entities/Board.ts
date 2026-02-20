@@ -1,5 +1,5 @@
 import { Card } from './Card';
-import { Position } from '../valueObjects/Position';
+import type { Position } from 'squfibo-shared';
 
 export class Board {
   private cells: (Card | null)[][] = [
@@ -60,7 +60,7 @@ export class Board {
         for (let col = 0; col < 3; col++) {
           const card = this.cells[row][col];
           if (card !== null && card.equals(targetCard)) {
-            positions.push(Position.of(row, col));
+            positions.push({ row: row, col: col });
           }
         }
       }

@@ -1,14 +1,18 @@
-import { CardValue } from '../valueObjects/CardValue';
-import { CardColor } from '../valueObjects/CardColor';
+import { CardColor, isValidCardValue } from 'squfibo-shared';
+import type { CardValueType } from 'squfibo-shared';
 
 export class Card {
   private static idCounter = 0;
 
   constructor(
-    public readonly value: CardValue,
+    public readonly value: CardValueType,
     public readonly color: CardColor,
     public readonly id: string = `card-${Card.idCounter++}`
-  ) {}
+  ) {
+    if (!isValidCardValue(value)) {
+      throw new Error(`Invalid card value: ${value}`);
+    }
+  }
 
   isSameColor(other: Card): boolean {
     return this.color === other.color;
@@ -19,6 +23,6 @@ export class Card {
   }
 
   toString(): string {
-    return `${this.color}:${this.value.value}`;
+    return `${this.color}:${this.value}`;
   }
 }

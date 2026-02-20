@@ -1,0 +1,428 @@
+/* ベーススタイル */
+.manual-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+  color: #2c3e50;
+}
+
+/* ヘッダー */
+.manual-header {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  padding: 1.2rem 1rem;
+  text-align: center;
+}
+
+.manual-header-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.manual-back {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.manual-back:hover {
+  color: white;
+}
+
+.manual-header h1 {
+  font-size: 1.8rem;
+  margin: 0;
+  font-weight: bold;
+}
+
+.manual-subtitle {
+  margin: 0.3rem 0 0;
+  opacity: 0.9;
+  font-size: 1rem;
+}
+
+/* メインエリア */
+.manual-main {
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+  width: 100%;
+}
+
+/* セクション */
+.manual-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.4rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.manual-section h2 {
+  font-size: 1.25rem;
+  color: #2c3e50;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid #e8f0fe;
+  padding-bottom: 0.5rem;
+}
+
+.section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  background: #4a90e2;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.manual-section h3 {
+  font-size: 1.05rem;
+  color: #357abd;
+  margin: 1.2rem 0 0.6rem;
+}
+
+.manual-section p {
+  line-height: 1.7;
+  margin: 0.6rem 0;
+}
+
+/* スクリーンショット画像 */
+.manual-screenshot {
+  width: 100%;
+  border-radius: 8px;
+  margin: 1rem 0;
+  display: block;
+}
+
+.manual-screenshot--small {
+  width: 60%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* スクリーンショットプレースホルダー */
+.screenshot-placeholder {
+  background: #f0f7ff;
+  border: 2px dashed #4a90e2;
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: center;
+  color: #4a90e2;
+  font-size: 0.88rem;
+  margin: 1rem 0;
+  line-height: 1.5;
+}
+
+/* カードテーブル */
+.card-table-wrapper {
+  overflow-x: auto;
+  margin: 0.8rem 0;
+}
+
+.card-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.card-table th,
+.card-table td {
+  padding: 0.5rem 0.8rem;
+  text-align: center;
+  border: 1px solid #e0e8f0;
+}
+
+.card-table th {
+  background: #4a90e2;
+  color: white;
+  font-weight: bold;
+}
+
+.card-table tr:nth-child(even) {
+  background: #f8faff;
+}
+
+.card-table .highlight-row {
+  background: #fff8e1;
+}
+
+.card-table .total-row {
+  background: #e8f0fe;
+  font-weight: bold;
+}
+
+/* 情報ボックス */
+.info-box {
+  background: #fff8e1;
+  border-left: 4px solid #ffc107;
+  border-radius: 0 8px 8px 0;
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  line-height: 1.6;
+}
+
+/* ステップリスト */
+.step-list {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.step-list li {
+  margin: 0.5rem 0;
+  line-height: 1.7;
+}
+
+/* ターンフロー */
+.turn-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+
+.turn-step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: #4a90e2;
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+  color: #2c3e50;
+}
+
+.step-content p {
+  margin: 0.3rem 0 !important;
+  font-size: 0.95rem;
+  color: #4a6080;
+}
+
+.step-content .note {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* 隣接図 */
+.adjacency-diagram {
+  background: #f8faff;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.diagram-label {
+  font-size: 0.88rem;
+  color: #666;
+  margin-bottom: 0.8rem;
+}
+
+.diagrams {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.diagram {
+  text-align: center;
+}
+
+.diagram-title {
+  font-size: 0.85rem;
+  color: #4a6080;
+  margin-bottom: 0.4rem;
+  font-weight: bold;
+}
+
+.grid-3x3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1.8rem);
+  gap: 2px;
+  justify-content: center;
+}
+
+.grid-3x3 .cell {
+  width: 1.8rem;
+  height: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  border-radius: 3px;
+}
+
+.grid-3x3 .cell.combo {
+  background: #4a90e2;
+  color: white;
+  font-weight: bold;
+}
+
+.grid-3x3 .cell.empty {
+  background: #e0e0e0;
+  color: #aaa;
+}
+
+/* 役カード */
+.combo-card {
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0.8rem 0;
+}
+
+.combo-big {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border-left: 4px solid #ff9800;
+}
+
+.combo-small {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-left: 4px solid #4caf50;
+}
+
+.combo-condition {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.combo-reward {
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.combo-example {
+  font-size: 0.85rem;
+  color: #555;
+  font-style: italic;
+}
+
+/* 勝者ボックス */
+.winner-box {
+  background: #e8f0fe;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 0.8rem;
+  line-height: 1.8;
+}
+
+/* リスト共通 */
+.manual-section ul,
+.manual-section ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.manual-section ul li,
+.manual-section ol li {
+  margin: 0.4rem 0;
+  line-height: 1.7;
+}
+
+/* フッター */
+.manual-footer {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.manual-footer p {
+  margin: 0;
+  opacity: 0.7;
+}
+
+/* ボタン（Welcome.cssから流用） */
+.btn {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  text-decoration: none;
+  text-align: center;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  .manual-header h1 {
+    font-size: 1.5rem;
+    padding: 0 2rem;
+  }
+
+  .manual-back {
+    font-size: 0.8rem;
+  }
+
+  .manual-section {
+    padding: 1rem;
+  }
+
+  .diagrams {
+    gap: 0.8rem;
+  }
+
+  .card-table th,
+  .card-table td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.9rem;
+  }
+}

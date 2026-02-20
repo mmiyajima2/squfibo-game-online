@@ -1,6 +1,6 @@
 import { useReducer, useCallback } from 'react';
 import { Card } from '../domain/entities/Card';
-import { Position } from '../domain/valueObjects/Position';
+import type { Position } from 'squfibo-shared';
 import { Combo } from '../domain/services/Combo';
 
 interface PlacedCardHistory {

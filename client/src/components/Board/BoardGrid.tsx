@@ -1,5 +1,6 @@
 import { Board } from '../../domain/entities/Board';
-import { Position } from '../../domain/valueObjects/Position';
+import type { Position } from 'squfibo-shared';
+import { positionEquals } from 'squfibo-shared';
 import { Card } from '../../domain/entities/Card';
 import { Cell } from './Cell';
 import './BoardGrid.css';
@@ -39,7 +40,7 @@ export function BoardGrid({
   disabled = false,
 }: BoardGridProps) {
   const isHighlighted = (position: Position): boolean => {
-    return highlightedPositions.some((p) => p.equals(position));
+    return highlightedPositions.some((p) => positionEquals(p, position));
   };
 
   const isSelected = (card: Card | null): boolean => {
@@ -50,7 +51,7 @@ export function BoardGrid({
   const isJustPlaced = (position: Position, card: Card | null): boolean => {
     if (!card) return false;
     return placementHistory.some(
-      (ph) => ph.position.equals(position) && ph.card.id === card.id
+      (ph) => positionEquals(ph.position, position) && ph.card.id === card.id
     );
   };
 
@@ -65,7 +66,7 @@ export function BoardGrid({
       {[0, 1, 2].map((row) => (
         <div key={row} className="board-row">
           {[0, 1, 2].map((col) => {
-            const position = Position.of(row, col);
+            const position = { row: row, col: col };
             const card = board.getCard(position);
             return (
               <Cell

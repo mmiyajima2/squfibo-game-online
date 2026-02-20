@@ -1,0 +1,216 @@
+import { io, Socket } from 'socket.io-client';
+import type { GameStateDTO } from 'squfibo-shared';
+
+// サーバーのURL（環境変数または開発用デフォルト）
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+
+// Socket.ioクライアントのシングルトンインスタンス
+let socketInstance: Socket | null = null;
+
+/**
+ * Socket.ioクライアントを初期化して取得
+ */
+export function getSocket(): Socket {
+  if (!socketInstance) {
+    socketInstance = io(SERVER_URL, {
+      autoConnect: false, // 手動接続
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 1000,
+      timeout: 5000,
+    });
+
+    // 接続イベント
+    socketInstance.on('connect', () => {
+      console.log('[Socket.io] Connected:', socketInstance?.id);
+    });
+
+    // 切断イベント
+    socketInstance.on('disconnect', (reason) => {
+      console.log('[Socket.io] Disconnected:', reason);
+    });
+
+    // 接続エラーイベント
+    socketInstance.on('connect_error', (error) => {
+      console.error('[Socket.io] Connection error:', error);
+    });
+
+    // 再接続試行イベント
+    socketInstance.on('reconnect_attempt', (attempt) => {
+      console.log('[Socket.io] Reconnect attempt:', attempt);
+    });
+
+    // 再接続成功イベント
+    socketInstance.on('reconnect', (attempt) => {
+      console.log('[Socket.io] Reconnected after', attempt, 'attempts');
+    });
+
+    // 再接続失敗イベント
+    socketInstance.on('reconnect_failed', () => {
+      console.error('[Socket.io] Reconnection failed');
+    });
+  }
+
+  return socketInstance;
+}
+
+/**
+ * Socket.ioに接続
+ */
+export function connectSocket(): void {
+  const socket = getSocket();
+  if (!socket.connected) {
+    socket.connect();
+  }
+}
+
+/**
+ * Socket.ioから切断
+ */
+export function disconnectSocket(): void {
+  if (socketInstance && socketInstance.connected) {
+    socketInstance.disconnect();
+  }
+}
+
+/**
+ * Socket.ioの接続状態を確認
+ */
+export function isSocketConnected(): boolean {
+  return socketInstance?.connected ?? false;
+}
+
+// イベントペイロードの型定義
+
+export interface CreateRoomPayload {
+  playerName: string;
+}
+
+export interface RoomCreatedPayload {
+  roomId: string;
+  hostUrl: string;
+  guestUrl: string;
+  playerId: string;
+  expiresAt: string;
+}
+
+export interface ErrorPayload {
+  code: string;
+  message: string;
+  details?: any;
+}
+
+export interface JoinRoomPayload {
+  roomId: string;
+  playerName: string;
+}
+
+export interface RoomJoinedPayload {
+  roomId: string;
+  playerId: string;
+  role: 'host' | 'guest';
+  roomInfo: {
+    hostPlayerName: string;
+    guestPlayerName: string | null;
+    status: string;
+  };
+}
+
+export interface GameStartPayload {
+  gameState: GameStateDTO;
+  yourPlayerId: string;
+  yourPlayerIndex: 0 | 1;
+}
+
+/**
+ * 部屋を作成する
+ */
+export function createRoom(
+  playerName: string,
+  onSuccess: (data: RoomCreatedPayload) => void,
+  onError: (error: ErrorPayload) => void
+): void {
+  const socket = getSocket();
+
+  // 接続していない場合は接続
+  if (!socket.connected) {
+    connectSocket();
+  }
+
+  // roomCreatedイベントリスナーを登録（一度だけ実行）
+  socket.once('roomCreated', (data: RoomCreatedPayload) => {
+    console.log('[Socket.io] Room created:', data);
+    onSuccess(data);
+  });
+
+  // errorイベントリスナーを登録（一度だけ実行）
+  socket.once('error', (error: ErrorPayload) => {
+    console.error('[Socket.io] Error creating room:', error);
+    onError(error);
+  });
+
+  // createRoomイベントを送信
+  const payload: CreateRoomPayload = { playerName };
+  console.log('[Socket.io] Creating room with payload:', payload);
+  socket.emit('createRoom', payload);
+}
+
+/**
+ * 部屋に参加する（ゲスト）
+ */
+export function joinRoom(
+  roomId: string,
+  playerName: string,
+  onSuccess: (data: RoomJoinedPayload) => void,
+  onError: (error: ErrorPayload) => void
+): void {
+  const socket = getSocket();
+
+  console.log('[Socket.io] joinRoom called, socket connected:', socket.connected);
+
+  // 接続していない場合は接続
+  if (!socket.connected) {
+    console.log('[Socket.io] Socket not connected, connecting...');
+    connectSocket();
+
+    // 接続完了を待つ
+    socket.once('connect', () => {
+      console.log('[Socket.io] Connected, now sending joinRoom');
+      sendJoinRoomRequest();
+    });
+  } else {
+    sendJoinRoomRequest();
+  }
+
+  function sendJoinRoomRequest() {
+    console.log('[Socket.io] Setting up joinRoom request');
+
+    // joinRoomイベントを送信（コールバック付き）
+    const payload: JoinRoomPayload = { roomId, playerName };
+    console.log('[Socket.io] Emitting joinRoom with payload:', payload);
+
+    socket.emit('joinRoom', payload, (response: RoomJoinedPayload | ErrorPayload) => {
+      console.log('[Socket.io] joinRoom callback received:', response);
+      console.log('[Socket.io] response type:', typeof response);
+      console.log('[Socket.io] response keys:', Object.keys(response));
+      console.log('[Socket.io] has code?', 'code' in response);
+
+      try {
+        // エラーレスポンスの判定
+        if ('code' in response) {
+          console.error('[Socket.io] Error response:', response);
+          onError(response as ErrorPayload);
+        } else {
+          console.log('[Socket.io] Success response:', response);
+          onSuccess(response as RoomJoinedPayload);
+        }
+      } catch (error) {
+        console.error('[Socket.io] Error in callback:', error);
+        console.error('[Socket.io] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      }
+    });
+  }
+}
+
+// グローバルにアクセス可能なsocketインスタンス（遅延初期化）
+export const socket = getSocket();

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameState } from '../../hooks/useGameState';
 import { useUIState } from '../../hooks/useUIState';
 import { useCommentary } from '../../hooks/useCommentary';
-import { Position } from '../../domain/valueObjects/Position';
+import type { Position } from 'squfibo-shared';
+import { positionEquals } from 'squfibo-shared';
 import { Card } from '../../domain/entities/Card';
-import { CardColor } from '../../domain/valueObjects/CardColor';
+import { CardColor } from 'squfibo-shared';
 import { ComboDetector } from '../../domain/services/ComboDetector';
 import { Combo } from '../../domain/services/Combo';
 import { BoardGrid } from '../Board/BoardGrid';
@@ -14,15 +15,65 @@ import { CommentaryArea } from '../Commentary/CommentaryArea';
 import { ComboRulesPanel } from '../ComboRules/ComboRulesPanel';
 import { ControlPanel } from './ControlPanel';
 import { CommentaryBuilder } from '../../types/Commentary';
-import type { CPUDifficulty } from '../../types/CPUDifficulty';
-import { CPU_DIFFICULTY_LABELS, CPU_DIFFICULTY_ENABLED } from '../../types/CPUDifficulty';
-import type { CPUActionStep, CPUTurnPlan } from '../../domain/services/cpu';
-import { CPUStrategyFactory } from '../../domain/services/cpu';
 import './GameContainer.css';
 import '../ComboRules/ComboRulesPanel.css';
 
-export function GameContainer() {
-  const { game, version, currentPlayerIndex, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement, executeCPUStep } = useGameState();
+type GameContainerProps = {
+  isOnlineMode?: boolean
+  role?: 'host' | 'guest' | null
+  playerName?: string | null
+  opponentPlayerName?: string | null
+  isReady?: boolean
+  isWaitingForGameStart?: boolean
+  onReady?: () => void
+  onLeaveRoom?: () => void
+  guestUrlField?: React.ReactNode
+  yourPlayerIndex?: 0 | 1 | null
+  // オンラインゲームの状態（オプショナル）
+  onlineGameState?: ReturnType<typeof import('../../hooks/useGameState').useGameState>
+  // オンライン時のコメンタリーとUIステート（オプショナル）
+  onlineCommentary?: ReturnType<typeof import('../../hooks/useCommentary').useCommentary>
+  onlineUIState?: ReturnType<typeof import('../../hooks/useUIState').useUIState>
+  // オンライン時のSocket.io送信メソッド（オプショナル）
+  claimComboToServer?: (
+    cardId: string | null,
+    position: Position,
+    comboPositions: Position[]
+  ) => void
+  endTurnToServer?: (cardId: string | null, position: Position) => void
+  removeCardToServer?: (position: Position) => void
+}
+
+export function GameContainer({
+  isOnlineMode = false,
+  role = null,
+  playerName = null,
+  opponentPlayerName = null,
+  isReady = false,
+  isWaitingForGameStart = false,
+  onReady,
+  onLeaveRoom,
+  guestUrlField,
+  yourPlayerIndex = null,
+  onlineGameState,
+  onlineCommentary,
+  onlineUIState,
+  claimComboToServer,
+  endTurnToServer,
+  removeCardToServer,
+}: GameContainerProps = {}) {
+  const localGameState = useGameState();
+  const localCommentary = useCommentary();
+  const localUIState = useUIState();
+
+  // オンラインモードでonlineGameStateが渡された場合はそちらを使用
+  const { game, hasGameStarted, placeCardFromHand, claimCombo, endTurn, discardFromBoard, drawAndPlaceCard, resetGame, cancelPlacement } =
+    onlineGameState || localGameState;
+
+  // オンラインモードでonlineCommentaryが渡された場合はそちらを使用
+  const { messages, addMessage, updateCurrent, clearMessages } = onlineCommentary || localCommentary;
+
+  // オンラインモードでonlineUIStateが渡された場合はそちらを使用
   const {
     selectedCard,
     selectCard,
@@ -39,18 +90,32 @@ export function GameContainer() {
     addPlacementHistory,
     removeLastPlacement,
     clearPlacementHistory
-  } = useUIState();
-  const { messages, addMessage, updateCurrent, clearMessages } = useCommentary();
+  } = onlineUIState || localUIState;
 
-  const [showDifficultyModal, setShowDifficultyModal] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<CPUDifficulty>('Easy');
-  const [playerGoesFirst, setPlayerGoesFirst] = useState(true);
   const [showComboRules, setShowComboRules] = useState(true);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const comboDetector = useMemo(() => new ComboDetector(), []);
   const currentPlayer = game.getCurrentPlayer();
-  const isPlayer1Turn = currentPlayer.id === 'player1';
+
+  // オンラインモードではインデックスで、オフラインモードではIDでターンを判定
+  const isPlayer1Turn = isOnlineMode
+    ? game.currentPlayerIndex === 0
+    : currentPlayer.id === 'player1';
+
+  // オンラインモードで自分のターンかどうかを判定
+  const isMyTurn = useMemo(() => {
+    if (!isOnlineMode) {
+      // オフラインモードの場合は常にtrue（両方のプレイヤーを操作可能）
+      return true;
+    }
+    // オンラインモードの場合、yourPlayerIndexを使用して判定
+    if (yourPlayerIndex === null) {
+      return false;
+    }
+    return game.currentPlayerIndex === yourPlayerIndex;
+  }, [isOnlineMode, yourPlayerIndex, game.currentPlayerIndex]);
 
   // 選択されたカードが役を形成しているか検証
   const isValidCombo = useMemo(() => {
@@ -61,7 +126,7 @@ export function GameContainer() {
     const positions: Position[] = [];
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const pos = Position.of(row, col);
+        const pos = { row: row, col: col };
         const card = game.board.getCard(pos);
         if (card && selectedBoardCards.some(sc => sc.id === card.id)) {
           positions.push(pos);
@@ -76,14 +141,15 @@ export function GameContainer() {
   // StrictModeでの二重実行を防ぐためのref
   const hasInitialized = useRef(false);
 
-  // CPU実行状態の管理
-  const [isCPUExecuting, setIsCPUExecuting] = useState(false);
-  const [cpuStepsQueue, setCpuStepsQueue] = useState<CPUActionStep[]>([]);
-  const cpuPlanRef = useRef<CPUTurnPlan | null>(null);
-
   // 初回レンダリング時のメッセージ表示
   useEffect(() => {
     if (!hasInitialized.current) {
+      // オンラインモードの場合、メッセージはuseOnlineGameで管理されるのでここでは何もしない
+      if (isOnlineMode) {
+        hasInitialized.current = true;
+        return;
+      }
+
       if (hasGameStarted) {
         addMessage(CommentaryBuilder.gameStart());
         updateCurrent('下側のターンです');
@@ -92,7 +158,7 @@ export function GameContainer() {
       }
       hasInitialized.current = true;
     }
-  }, [hasGameStarted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasGameStarted, isOnlineMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // エラーメッセージを3秒後に自動的にクリア
   useEffect(() => {
@@ -104,9 +170,12 @@ export function GameContainer() {
     }
   }, [errorMessage, clearError]);
 
-  // ターン切り替えを監視して実況を更新
+  // ターン切り替えを監視して実況を更新（オフラインモードのみ）
   const prevIsPlayer1Turn = useRef(isPlayer1Turn);
   useEffect(() => {
+    // オンラインモードではuseOnlineGameがターン切り替えメッセージを管理するのでスキップ
+    if (isOnlineMode) return;
+
     // 初回レンダリングはスキップ（hasInitialized.currentで判定）
     if (prevIsPlayer1Turn.current !== isPlayer1Turn && hasInitialized.current) {
       const message = isPlayer1Turn
@@ -133,130 +202,16 @@ export function GameContainer() {
       clearPlacementHistory();
     }
     prevIsPlayer1Turn.current = isPlayer1Turn;
-  }, [isPlayer1Turn, addMessage, updateCurrent, clearPlacementHistory, game]);
-
-  // CPUターンのステップ実行
-  const executeNextCPUStep = useCallback(() => {
-    if (cpuStepsQueue.length === 0) {
-      setIsCPUExecuting(false);
-      cpuPlanRef.current = null;
-      return;
-    }
-
-    const [nextStep, ...remainingSteps] = cpuStepsQueue;
-    const cpuPlayerName = game.getCurrentPlayer().id === 'player1' ? '下側' : '上側';
-
-    // 各ステップのメッセージと遅延
-    let message = '';
-    let delay = 0;
-
-    switch (nextStep.type) {
-      case 'REMOVE_CARD': {
-        const card = game.board.getCard(nextStep.position);
-        if (card) {
-          const cardColor = card.color === CardColor.RED ? '赤' : '青';
-          const cardValue = card.value.value;
-          message = `${cpuPlayerName}が盤面の${cardColor}${cardValue}を除去しました`;
-        }
-        delay = 1000;
-        break;
-      }
-
-      case 'PLACE_CARD': {
-        const cardColor = nextStep.card.color === CardColor.RED ? '赤' : '青';
-        const cardValue = nextStep.card.value.value;
-        message = `${cpuPlayerName}が${cardColor}${cardValue}を配置しました`;
-        delay = 1200;
-        break;
-      }
-
-      case 'CLAIM_COMBO': {
-        const comboName = getComboTypeName(nextStep.combo.type);
-        message = `${cpuPlayerName}が${comboName}を申告しました！`;
-        delay = 1500;
-        break;
-      }
-
-      case 'END_TURN': {
-        delay = 500;
-        break;
-      }
-    }
-
-    // メッセージがあれば追加
-    if (message) {
-      addMessage(CommentaryBuilder.createMessage('cpu', '🤖', message));
-    }
-
-    // ステップを実行
-    setTimeout(() => {
-      try {
-        executeCPUStep(nextStep);
-        setCpuStepsQueue(remainingSteps);
-      } catch (error) {
-        console.error('CPU step execution failed:', error);
-        showError('CPUのステップ実行に失敗しました');
-        setIsCPUExecuting(false);
-        setCpuStepsQueue([]);
-        cpuPlanRef.current = null;
-      }
-    }, delay);
-  }, [cpuStepsQueue, game, addMessage, executeCPUStep, showError]);
-
-  // CPUステップキューの監視
-  useEffect(() => {
-    if (isCPUExecuting) {
-      executeNextCPUStep();
-    }
-  }, [isCPUExecuting, cpuStepsQueue, executeNextCPUStep]);
-
-  // CPUターンの自動開始
-  useEffect(() => {
-    const currentPlayerInEffect = game.getCurrentPlayer();
-    const isCPU = currentPlayerInEffect.isCPU();
-
-    console.log('[CPU Auto-Execute] useEffect fired', {
-      version,
-      currentPlayerIndex,
-      currentPlayerId: currentPlayerInEffect.id,
-      isCPU,
-      isGameOver: game.isGameOver(),
-      isCPUExecuting
-    });
-
-    // ゲームオーバー時、CPUでない場合、または既に実行中の場合はスキップ
-    if (game.isGameOver() || !isCPU || isCPUExecuting) {
-      console.log('[CPU Auto-Execute] Skipped', { isGameOver: game.isGameOver(), isCPU, isCPUExecuting });
-      return;
-    }
-
-    // CPUターンの計画を立てる
-    const timer = setTimeout(() => {
-      try {
-        const cpuDifficulty = game.players.find(p => p.isCPU())?.id === 'player1'
-          ? (game as any).cpuDifficulty || 'Easy'
-          : (game as any).cpuDifficulty || 'Easy';
-
-        const strategy = CPUStrategyFactory.createStrategy(cpuDifficulty);
-        const plan = strategy.planTurn(game);
-
-        console.log('[CPU Auto-Execute] CPU plan created', { steps: plan.steps.length });
-
-        cpuPlanRef.current = plan;
-        setIsCPUExecuting(true);
-        setCpuStepsQueue(plan.steps);
-      } catch (error) {
-        console.error('CPU turn planning failed:', error);
-        showError('CPUのターン計画に失敗しました');
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [currentPlayerIndex, version, game, isCPUExecuting, showError]);
-
+  }, [isPlayer1Turn, addMessage, updateCurrent, clearPlacementHistory, game, isOnlineMode]);
 
   const handleCardSelect = (card: Card) => {
     if (!hasGameStarted) return;
+
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
 
     if (selectedCard?.equals(card)) {
       selectCard(null);
@@ -270,7 +225,7 @@ export function GameContainer() {
         const emptyPositions: Position[] = [];
         for (let row = 0; row < 3; row++) {
           for (let col = 0; col < 3; col++) {
-            const pos = Position.of(row, col);
+            const pos = { row: row, col: col };
             if (game.board.isEmpty(pos)) {
               emptyPositions.push(pos);
             }
@@ -282,6 +237,12 @@ export function GameContainer() {
   };
 
   const handleDeleteBoardCard = (position: Position) => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     const card = game.board.getCard(position);
     if (!card) {
       showError('そのマスにはカードがありません');
@@ -289,7 +250,7 @@ export function GameContainer() {
     }
 
     const cardColor = card.color === CardColor.RED ? '赤' : '青';
-    const cardValue = card.value.value;
+    const cardValue = card.value;
 
     const confirmed = window.confirm(`盤面の${cardColor}${cardValue} を捨てますか？`);
     if (!confirmed) {
@@ -300,6 +261,11 @@ export function GameContainer() {
       discardFromBoard(position);
       addMessage(CommentaryBuilder.createMessage('discard', '🗑️', `盤面の${cardColor}${cardValue}を廃棄しました`));
 
+      // オンラインモードの場合、サーバーに通知
+      if (isOnlineMode && removeCardToServer) {
+        removeCardToServer(position);
+      }
+
       clearError();
     } catch (error) {
       console.error('Failed to discard card from board:', error);
@@ -309,6 +275,12 @@ export function GameContainer() {
 
   const handleCellClick = (position: Position) => {
     if (!hasGameStarted) return;
+
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
 
     // 1ターンに1枚のみ配置可能
     if (placementHistory.length >= 1) {
@@ -354,7 +326,7 @@ export function GameContainer() {
 
     try {
       const cardColor = selectedCard.color === CardColor.RED ? '赤' : '青';
-      const cardValue = selectedCard.value.value;
+      const cardValue = selectedCard.value;
 
       // 現在の手札から選択されたカードと同じIDのカードを探す
       const currentHand = game.getCurrentPlayer().hand.getCards();
@@ -383,49 +355,56 @@ export function GameContainer() {
   };
 
   const handleEndTurn = () => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     // カードを配置していない場合はターン終了できない
     if (placementHistory.length === 0) {
       showError('カードを1枚配置してからターンを終了してください');
       return;
     }
 
-    endTurn();
-    clearPlacementHistory();
-    selectCard(null);
+    // オンラインモードの場合はサーバーに送信
+    if (isOnlineMode && endTurnToServer) {
+      const lastPlacement = placementHistory[placementHistory.length - 1];
+      if (lastPlacement) {
+        endTurnToServer(lastPlacement.card.id, lastPlacement.position);
+        // ローカル状態の更新はgameStateUpdateイベントで行われるため、ここでは行わない
+        clearPlacementHistory();
+        selectCard(null);
+      }
+    } else {
+      // オフラインモードの場合はローカル状態を更新
+      endTurn();
+      clearPlacementHistory();
+      selectCard(null);
+    }
   };
 
   const handleResetGame = () => {
-    setShowDifficultyModal(true);
-  };
-
-  const handleStartGameWithDifficulty = (difficulty: CPUDifficulty) => {
-    setShowDifficultyModal(false);
     setShowGameOverModal(false);
-    resetGame(difficulty, playerGoesFirst);
+    resetGame(true);
     clearMessages();
     addMessage(CommentaryBuilder.gameStart());
-    const turnMessage = playerGoesFirst ? '下側のターンです' : '上側のターンです';
-    updateCurrent(turnMessage);
+    updateCurrent('下側のターンです');
     selectCard(null);
     clearHighlight();
     clearBoardCardSelection();
     clearPlacementHistory();
-
-    // CPU実行状態をクリア
-    setIsCPUExecuting(false);
-    setCpuStepsQueue([]);
-    cpuPlanRef.current = null;
-  };
-
-  const handleCancelDifficultySelection = () => {
-    setShowDifficultyModal(false);
-    setSelectedDifficulty('Easy');
-    setPlayerGoesFirst(true);
   };
 
   const handleCancelCard = (position: Position) => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     // 配置履歴からこのpositionのカードを探す
-    const placement = placementHistory.find(ph => ph.position.equals(position));
+    const placement = placementHistory.find(ph => positionEquals(ph.position, position));
 
     if (!placement) {
       showError('取り消すカード配置がありません');
@@ -437,7 +416,7 @@ export function GameContainer() {
       removeLastPlacement();
 
       const cardColor = placement.card.color === CardColor.RED ? '赤' : '青';
-      const cardValue = placement.card.value.value;
+      const cardValue = placement.card.value;
       addMessage(
         CommentaryBuilder.createMessage(
           'cancel',
@@ -454,6 +433,12 @@ export function GameContainer() {
 
   // 「役を申告」ボタンを押した時（モーダルなし、直接検証）
   const handleClaimCombo = () => {
+    // オンラインモードで自分のターンでない場合は操作不可
+    if (isOnlineMode && !isMyTurn) {
+      showError('自分のターンではありません');
+      return;
+    }
+
     if (selectedBoardCards.length === 0) {
       showError('役を構成するカードを盤面から選択してください');
       return;
@@ -468,7 +453,7 @@ export function GameContainer() {
     const positions: Position[] = [];
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
-        const pos = Position.of(row, col);
+        const pos = { row: row, col: col };
         const card = game.board.getCard(pos);
         if (card && selectedBoardCards.some(sc => sc.id === card.id)) {
           positions.push(pos);
@@ -505,29 +490,43 @@ export function GameContainer() {
     }
 
     // 正しい役が申告された
-    // 役申告前に現在のプレイヤーを保存（endTurnでターンが切り替わる前に）
-    const claimingPlayer = game.getCurrentPlayer();
-    const combo = new Combo(verifiedComboType, selectedBoardCards, positions);
-    const success = claimCombo(combo);
-
-    if (success) {
-      const comboName = getComboTypeName(verifiedComboType);
-
-      // 役申告の実況は申告したプレイヤーに基づく
-      const comboMessage = claimingPlayer.id === 'player1'
-        ? CommentaryBuilder.lowerPlayerClaimedCombo(comboName)
-        : CommentaryBuilder.upperPlayerClaimedCombo(comboName);
-      addMessage(comboMessage);
-
-
-      clearPlacementHistory();
-      clearBoardCardSelection();
-      clearError();
-      selectCard(null);
-
-      // ターン終了はclaimComboアクション内で自動的に行われる
+    // オンラインモードの場合はサーバーに送信
+    if (isOnlineMode && claimComboToServer) {
+      const lastPlacement = placementHistory[placementHistory.length - 1];
+      if (lastPlacement) {
+        claimComboToServer(lastPlacement.card.id, lastPlacement.position, positions);
+        // ローカル状態の更新はgameStateUpdateイベントで行われるため、ここでは行わない
+        clearPlacementHistory();
+        clearBoardCardSelection();
+        clearError();
+        selectCard(null);
+      }
     } else {
-      showError('役の申告に失敗しました');
+      // オフラインモードの場合はローカル状態を更新
+      // 役申告前に現在のプレイヤーを保存（endTurnでターンが切り替わる前に）
+      const claimingPlayer = game.getCurrentPlayer();
+      const combo = new Combo(verifiedComboType, selectedBoardCards, positions);
+      const success = claimCombo(combo);
+
+      if (success) {
+        const comboName = getComboTypeName(verifiedComboType);
+
+        // 役申告の実況は申告したプレイヤーに基づく
+        const comboMessage = claimingPlayer.id === 'player1'
+          ? CommentaryBuilder.lowerPlayerClaimedCombo(comboName)
+          : CommentaryBuilder.upperPlayerClaimedCombo(comboName);
+        addMessage(comboMessage);
+
+
+        clearPlacementHistory();
+        clearBoardCardSelection();
+        clearError();
+        selectCard(null);
+
+        // ターン終了はclaimComboアクション内で自動的に行われる
+      } else {
+        showError('役の申告に失敗しました');
+      }
     }
   };
 
@@ -547,6 +546,31 @@ export function GameContainer() {
   const isGameOver = game.isGameOver();
   const winner = game.getWinner();
   const isBoardFull = game.board.isFull();
+
+  // オンラインモードのプレイヤー名表示
+  // role === 'host' の場合: player1 = ホスト（下側）, player2 = ゲスト（上側）
+  // role === 'guest' の場合: player1 = ホスト（下側）, player2 = ゲスト（上側）
+  const player1Label = isOnlineMode && role === 'host'
+    ? `${playerName}（ホスト）`
+    : isOnlineMode && role === 'guest'
+    ? opponentPlayerName
+      ? `${opponentPlayerName}（ホスト）`
+      : 'ホスト'
+    : '下側の手札';
+
+  const player2Label = isOnlineMode && role === 'guest'
+    ? `${playerName}（ゲスト）`
+    : isOnlineMode && role === 'host'
+    ? opponentPlayerName
+      ? `${opponentPlayerName}（ゲスト）`
+      : 'ゲスト（待機中）'
+    : '上側の手札';
+
+  // 準備完了ボタンの表示判定
+  // ホスト（role === 'host'）は下側の手札エリアに表示
+  // ゲスト（role === 'guest'）は上側の手札エリアに表示
+  const showReadyButtonForPlayer1 = isOnlineMode && role === 'host' && !isReady && !isWaitingForGameStart && !hasGameStarted;
+  const showReadyButtonForPlayer2 = isOnlineMode && role === 'guest' && !isReady && !isWaitingForGameStart && !hasGameStarted;
 
   // ゲームオーバー時にモーダルを表示
   useEffect(() => {
@@ -570,7 +594,7 @@ export function GameContainer() {
             <h2>ゲーム終了！</h2>
             {winner ? (
               <p className="winner-text">
-                {winner.id === 'player1' ? '下側' : '上側'}の勝ち！
+                {player1.id === winner.id ? '下側' : '上側'}の勝ち！
               </p>
             ) : (
               <p className="winner-text">引き分け！</p>
@@ -591,98 +615,56 @@ export function GameContainer() {
           </div>
         </div>
       )}
-      {showDifficultyModal && (
-        <div className="difficulty-modal">
-          <div className="difficulty-modal-content">
-            <button
-              className="modal-close-button"
-              onClick={handleCancelDifficultySelection}
-              aria-label="閉じる"
-            >
-              ×
-            </button>
-            <h2>ゲーム設定</h2>
-
-            <div className="setting-section">
-              <h3>CPU難易度</h3>
-              <div className="difficulty-buttons">
-                {(['Easy', 'Normal', 'Hard'] as CPUDifficulty[]).map((difficulty) => {
-                  const isEnabled = CPU_DIFFICULTY_ENABLED[difficulty];
-                  const isSelected = selectedDifficulty === difficulty;
-
-                  return (
-                    <button
-                      key={difficulty}
-                      className={`difficulty-button ${isSelected ? 'selected' : ''} ${!isEnabled ? 'disabled' : ''}`}
-                      onClick={() => isEnabled && setSelectedDifficulty(difficulty)}
-                      disabled={!isEnabled}
-                    >
-                      {CPU_DIFFICULTY_LABELS[difficulty]}
-                      {!isEnabled && <span className="coming-soon">（準備中）</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="setting-section">
-              <h3>先攻・後攻</h3>
-              <div className="turn-order-buttons">
-                <button
-                  className={`turn-order-button ${playerGoesFirst ? 'selected' : ''}`}
-                  onClick={() => setPlayerGoesFirst(true)}
-                >
-                  先攻（自分が先）
-                </button>
-                <button
-                  className={`turn-order-button ${!playerGoesFirst ? 'selected' : ''}`}
-                  onClick={() => setPlayerGoesFirst(false)}
-                >
-                  後攻（CPUが先）
-                </button>
-              </div>
-            </div>
-
-            <div className="difficulty-modal-actions">
-              <button
-                className="difficulty-cancel-button"
-                onClick={handleCancelDifficultySelection}
-              >
-                キャンセル
-              </button>
-              <button
-                className="difficulty-start-button"
-                onClick={() => handleStartGameWithDifficulty(selectedDifficulty)}
-              >
-                ゲーム開始
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <div className="game-header">
         <h1 className="game-title">SquFibo（すくふぃぼ）</h1>
-        <button className="reset-button" onClick={handleResetGame}>
-          新しいゲーム
-        </button>
+        {!isOnlineMode && (
+          <button className="reset-button" onClick={handleResetGame}>
+            新しいゲーム
+          </button>
+        )}
+        {isOnlineMode && onLeaveRoom && (
+          <button className="reset-button leave-button" onClick={() => setShowLeaveConfirm(true)}>
+            退出
+          </button>
+        )}
       </div>
 
       <div className="game-content">
         <div className="opponent-area">
           <HandArea
             cards={hasGameStarted ? player2.hand.getCards() : []}
-            selectedCard={isPlayer1Turn ? null : selectedCard}
+            selectedCard={
+              isOnlineMode
+                ? (role === 'guest' ? selectedCard : null)
+                : (isPlayer1Turn ? null : selectedCard)
+            }
             onCardClick={handleCardSelect}
-            label="上側の手札"
-            isOpponent={isPlayer1Turn}
-            disabled={!hasGameStarted}
-            hideCardDetails={true}
+            label={player2Label}
+            isOpponent={role !== 'guest'}
+            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart) || (isOnlineMode && role === 'host') || (isOnlineMode && role === 'guest' && !isMyTurn)}
+            hideCardDetails={role !== 'guest'}
+            readyButton={
+              showReadyButtonForPlayer2 ? (
+                <button className="ready-button" onClick={onReady}>
+                  準備完了
+                </button>
+              ) : isWaitingForGameStart && role === 'guest' ? (
+                <div className="waiting-message">準備完了しました。相手プレイヤーの準備を待っています...</div>
+              ) : undefined
+            }
+            guestUrlField={guestUrlField}
           />
         </div>
 
         <div className="game-middle">
           <div className="status-board-commentary-container">
-            <GameStatus game={game} />
+            <GameStatus
+              game={game}
+              isOnlineMode={isOnlineMode}
+              role={role}
+              playerName={playerName}
+              opponentPlayerName={opponentPlayerName}
+            />
             <div className="board-and-info-container">
               <BoardGrid
                 board={game.board}
@@ -691,22 +673,22 @@ export function GameContainer() {
                 isValidCombo={isValidCombo}
                 onCellClick={handleCellClick}
                 onCardClick={toggleBoardCardSelection}
-                showDeleteIcons={isBoardFull && !isGameOver && placementHistory.length === 0}
+                showDeleteIcons={isBoardFull && !isGameOver && placementHistory.length === 0 && isMyTurn}
                 onDeleteCard={handleDeleteBoardCard}
                 showCancelIcons={placementHistory.length > 0}
                 onCancelCard={handleCancelCard}
                 placementHistory={placementHistory}
-                disabled={!hasGameStarted}
+                disabled={!hasGameStarted || (isOnlineMode && !isMyTurn)}
               />
               <div className="info-display-area">
-                {isBoardFull && placementHistory.length === 0 && (
+                {isBoardFull && placementHistory.length === 0 && isMyTurn && (
                   <div className="board-full-notice">
                     ⚠️ 盤面が満杯です。盤面のカードのゴミ箱アイコンをクリックして廃棄するか、役を申告してください。
                   </div>
                 )}
                 {selectedCard && (
                   <div className="selected-card-info">
-                    選択中: {selectedCard.color} {selectedCard.value.value}
+                    選択中: {selectedCard.color} {selectedCard.value}
                   </div>
                 )}
                 {selectedBoardCards.length > 0 && (
@@ -725,7 +707,7 @@ export function GameContainer() {
               onClaimCombo={handleClaimCombo}
               onEndTurn={handleEndTurn}
               isGameOver={isGameOver}
-              disabled={!hasGameStarted}
+              disabled={!hasGameStarted || (isOnlineMode && !isMyTurn)}
             />
             {showComboRules ? (
               <ComboRulesPanel onClose={() => setShowComboRules(false)} />
@@ -740,15 +722,61 @@ export function GameContainer() {
         <div className="player-area">
           <HandArea
             cards={hasGameStarted ? player1.hand.getCards() : []}
-            selectedCard={isPlayer1Turn ? selectedCard : null}
+            selectedCard={
+              isOnlineMode
+                ? (role === 'host' ? selectedCard : null)
+                : (isPlayer1Turn ? selectedCard : null)
+            }
             onCardClick={handleCardSelect}
-            label="下側の手札"
-            isOpponent={!isPlayer1Turn}
-            disabled={!hasGameStarted}
+            label={player1Label}
+            isOpponent={role !== 'host'}
+            disabled={!hasGameStarted || (isOnlineMode && isWaitingForGameStart) || (isOnlineMode && role === 'guest') || (isOnlineMode && role === 'host' && !isMyTurn)}
+            hideCardDetails={role !== 'host'}
+            readyButton={
+              showReadyButtonForPlayer1 ? (
+                <button className="ready-button" onClick={onReady}>
+                  準備完了
+                </button>
+              ) : isWaitingForGameStart && role === 'host' ? (
+                <div className="waiting-message">準備完了しました。ゲストプレイヤーの参加を待っています...</div>
+              ) : undefined
+            }
           />
           <CommentaryArea messages={messages} />
         </div>
       </div>
+
+      {showLeaveConfirm && (
+        <div className="leave-confirm-modal">
+          <div className="leave-confirm-content">
+            <h2>退出の確認</h2>
+            <p className="leave-confirm-message">
+              退出すると、<strong>このゲームは消滅します。</strong>
+              <br />
+              相手プレイヤーのゲームも終了します。
+              <br />
+              本当に退出しますか？
+            </p>
+            <div className="leave-confirm-actions">
+              <button
+                className="leave-cancel-button"
+                onClick={() => setShowLeaveConfirm(false)}
+              >
+                キャンセル
+              </button>
+              <button
+                className="leave-confirm-button"
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  onLeaveRoom?.();
+                }}
+              >
+                退出する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

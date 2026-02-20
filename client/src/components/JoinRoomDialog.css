@@ -1,0 +1,11 @@
+/* JoinRoomDialog uses the same styles as CreateRoomDialog */
+/* Import CreateRoomDialog styles */
+@import './CreateRoomDialog.css';
+
+.dialog-description {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  text-align: center;
+}

@@ -1,5 +1,5 @@
 import { Card } from '../../domain/entities/Card';
-import { Position } from '../../domain/valueObjects/Position';
+import type { Position } from 'squfibo-shared';
 import { CardComponent } from '../Card/CardComponent';
 import './Cell.css';
 

@@ -1,6 +1,7 @@
 import { Card } from '../../domain/entities/Card';
 import { CardComponent } from '../Card/CardComponent';
 import './HandArea.css';
+import type { ReactNode } from 'react';
 
 interface HandAreaProps {
   cards: Card[];
@@ -12,6 +13,8 @@ interface HandAreaProps {
   isOpponent?: boolean;
   disabled?: boolean;
   hideCardDetails?: boolean;
+  readyButton?: ReactNode;
+  guestUrlField?: ReactNode;
 }
 
 export function HandArea({
@@ -24,6 +27,8 @@ export function HandArea({
   isOpponent = false,
   disabled = false,
   hideCardDetails = false,
+  readyButton,
+  guestUrlField,
 }: HandAreaProps) {
   const handleCardClick = (card: Card) => {
     if (onCardClick && !isOpponent && !disabled) {
@@ -63,6 +68,8 @@ export function HandArea({
         )}
       </div>
       <div className="hand-count">{cards.length} 枚</div>
+      {readyButton && <div className="hand-ready-button">{readyButton}</div>}
+      {guestUrlField && <div className="hand-guest-url-field">{guestUrlField}</div>}
     </div>
   );
 }

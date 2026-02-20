@@ -34,7 +34,11 @@ export class Hand {
       }
 
       // 第二ソート: 数字の昇順
-      return a.value.value - b.value.value;
+      return a.value - b.value;
     });
+  }
+
+  setCards(cards: Card[]): void {
+    this.cards = [...cards];
   }
 }

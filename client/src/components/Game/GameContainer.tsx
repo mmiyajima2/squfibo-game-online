@@ -101,7 +101,7 @@ export function GameContainer({
 
   // オンラインモードではインデックスで、オフラインモードではIDでターンを判定
   const isPlayer1Turn = isOnlineMode
-    ? game.currentPlayerIndex === 0
+    ? game.getCurrentPlayerIndex() === 0
     : currentPlayer.id === 'player1';
 
   // オンラインモードで自分のターンかどうかを判定
@@ -114,8 +114,8 @@ export function GameContainer({
     if (yourPlayerIndex === null) {
       return false;
     }
-    return game.currentPlayerIndex === yourPlayerIndex;
-  }, [isOnlineMode, yourPlayerIndex, game.currentPlayerIndex]);
+    return game.getCurrentPlayerIndex() === yourPlayerIndex;
+  }, [isOnlineMode, yourPlayerIndex, game.getCurrentPlayerIndex()]);
 
   // 選択されたカードが役を形成しているか検証
   const isValidCombo = useMemo(() => {

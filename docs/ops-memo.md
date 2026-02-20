@@ -56,6 +56,12 @@ cd shared
 npm install
 npm run build
 
+# client のビルド (静的ファイルを client/dist/ に出力)
+cd ../client
+npm install
+npm run build
+# → client/dist/ に index.html 等が生成される
+
 # server の依存関係インストール & TypeScript ビルド
 cd ../server
 npm install
@@ -182,8 +188,9 @@ cd /home/deploy/squfibo-game-online
 # 最新コードを取得
 git pull origin main
 
-# shared → server の順でリビルド
+# shared → client → server の順でリビルド
 cd shared && npm install && npm run build
+cd ../client && npm install && npm run build
 cd ../server && npm install && npm run build
 
 # サービス再起動

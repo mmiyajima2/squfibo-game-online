@@ -1,6 +1,17 @@
 Task
 ----
 
+# [x] 　要望: server側を本番環境でデーモンとして機能させる手順メモがほしい
+- ./docs/ops-memo.md としてほしい
+- server側で追加でモジュールインストールが必要ならインストールしてよい
+
+# [x] 　要望: Nginxのコンフィグのテンプレートをつくってほしい
+- ./etc/nginx-template としてほしい
+- FQDNは、squfibo-online.buntozu.com
+- SSLはLets Encryptで対応する予定なので、そこは仮置きでよい
+- Nginx -> client/, Nginx -> server の設定が必要:w
+
+
 # [x] 　バグ: ゲーム終了したときの表記がおかしい
 - 残り星が０
 - 上が星９、下が星１２、の状態

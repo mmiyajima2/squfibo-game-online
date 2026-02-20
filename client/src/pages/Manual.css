@@ -280,7 +280,7 @@
   justify-content: center;
 }
 
-.cell {
+.grid-3x3 .cell {
   width: 1.8rem;
   height: 1.8rem;
   display: flex;
@@ -290,13 +290,13 @@
   border-radius: 3px;
 }
 
-.cell.combo {
+.grid-3x3 .cell.combo {
   background: #4a90e2;
   color: white;
   font-weight: bold;
 }
 
-.cell.empty {
+.grid-3x3 .cell.empty {
   background: #e0e0e0;
   color: #aaa;
 }

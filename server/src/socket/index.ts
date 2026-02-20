@@ -906,6 +906,17 @@ async function handleClaimCombo(
     } else {
       // ターン変更
       GameService.changeTurn(gameState);
+
+      // 新しいターンのプレイヤーの手札が空の場合、山札から1枚自動ドロー
+      const newCurrentPlayerForCombo = gameState.players[gameState.currentPlayerIndex];
+      if (newCurrentPlayerForCombo.hand.cards.length === 0 && gameState.deckCount > 0) {
+        GameService.drawCardsFromDeck(gameState, newCurrentPlayerForCombo, 1);
+        logger.info(
+          { roomId: payload.roomId, playerId: newCurrentPlayerForCombo.id },
+          'Auto-drew card for player with empty hand at turn start'
+        );
+      }
+
       await GameService.saveGameState(payload.roomId, gameState);
 
       const turnPayload: TurnChangedPayload = {
@@ -1159,6 +1170,17 @@ async function handleEndTurn(
 
     // ターン変更
     GameService.changeTurn(gameState);
+
+    // 新しいターンのプレイヤーの手札が空の場合、山札から1枚自動ドロー
+    const newCurrentPlayerForEndTurn = gameState.players[gameState.currentPlayerIndex];
+    if (newCurrentPlayerForEndTurn.hand.cards.length === 0 && gameState.deckCount > 0) {
+      GameService.drawCardsFromDeck(gameState, newCurrentPlayerForEndTurn, 1);
+      logger.info(
+        { roomId: payload.roomId, playerId: newCurrentPlayerForEndTurn.id },
+        'Auto-drew card for player with empty hand at turn start'
+      );
+    }
+
     await GameService.saveGameState(payload.roomId, gameState);
 
     const turnPayload: TurnChangedPayload = {

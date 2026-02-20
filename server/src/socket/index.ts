@@ -336,6 +336,18 @@ async function handleReady(
       return;
     }
 
+    // 部屋がすでにゲーム中またはREADY状態でないかチェック（二重ゲーム開始を防止）
+    const currentRoomInfo = await RoomService.getRoomInfo(payload.roomId);
+    if (currentRoomInfo && currentRoomInfo.status === 'PLAYING') {
+      const error: ErrorPayload = {
+        code: 'ROOM_NOT_AVAILABLE',
+        message: 'ゲームはすでに開始されています',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
     // プレイヤーを準備完了にする
     const result = await RoomService.markPlayerReady(payload.roomId, payload.playerId);
 

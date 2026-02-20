@@ -66,10 +66,9 @@ export class Game {
       }
     }
 
-    // Deckの構築（カード枚数のみを管理）
-    // 注: サーバーはdeckCountのみを送信するため、実際のカード内容は不要
-    // 空のデッキを作成し、カウントは外部で管理
-    const deck = new Deck([]);
+    // Deckの構築（サーバーのdeckCountを使用して枚数を管理）
+    // 注: サーバーはdeckCountのみを送信するため、実際のカード内容は保持しない
+    const deck = new Deck([], gameStateDTO.deckCount);
 
     // Playersの構築
     const player1 = new Player(gameStateDTO.players[0].id);

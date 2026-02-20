@@ -3,7 +3,11 @@ import { CardColor } from 'squfibo-shared';
 import type { CardValueType } from 'squfibo-shared';
 
 export class Deck {
-  constructor(private cards: Card[] = []) {}
+  private count: number;
+
+  constructor(private cards: Card[] = [], initialCount?: number) {
+    this.count = initialCount !== undefined ? initialCount : cards.length;
+  }
 
   shuffle(): void {
     for (let i = this.cards.length - 1; i > 0; i--) {
@@ -13,7 +17,9 @@ export class Deck {
   }
 
   draw(): Card | null {
-    return this.cards.pop() || null;
+    const card = this.cards.pop() || null;
+    if (this.count > 0) this.count--;
+    return card;
   }
 
   peek(): Card | null {
@@ -21,11 +27,11 @@ export class Deck {
   }
 
   isEmpty(): boolean {
-    return this.cards.length === 0;
+    return this.count === 0;
   }
 
   getCardCount(): number {
-    return this.cards.length;
+    return this.count;
   }
 
   static createInitialDeck(): Deck {

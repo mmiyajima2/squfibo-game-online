@@ -60,7 +60,7 @@ export function GameContainer({
   onlineUIState,
   claimComboToServer,
   endTurnToServer,
-  removeCardToServer: _removeCardToServer,
+  removeCardToServer,
 }: GameContainerProps = {}) {
   const localGameState = useGameState();
   const localCommentary = useCommentary();
@@ -260,6 +260,11 @@ export function GameContainer({
     try {
       discardFromBoard(position);
       addMessage(CommentaryBuilder.createMessage('discard', '🗑️', `盤面の${cardColor}${cardValue}を廃棄しました`));
+
+      // オンラインモードの場合、サーバーに通知
+      if (isOnlineMode && removeCardToServer) {
+        removeCardToServer(position);
+      }
 
       clearError();
     } catch (error) {
@@ -676,7 +681,7 @@ export function GameContainer({
                 disabled={!hasGameStarted || (isOnlineMode && !isMyTurn)}
               />
               <div className="info-display-area">
-                {isBoardFull && placementHistory.length === 0 && (
+                {isBoardFull && placementHistory.length === 0 && isMyTurn && (
                   <div className="board-full-notice">
                     ⚠️ 盤面が満杯です。盤面のカードのゴミ箱アイコンをクリックして廃棄するか、役を申告してください。
                   </div>

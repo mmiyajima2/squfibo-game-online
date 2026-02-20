@@ -609,9 +609,14 @@ export function GameContainer({
                 <span className="score-value">★ {player1.stars}</span>
               </div>
             </div>
-            <button className="new-game-button" onClick={handleResetGame}>
-              新しいゲーム
-            </button>
+            {isOnlineMode && onLeaveRoom && (
+              <button className="game-over-leave-button" onClick={() => {
+                setShowGameOverModal(false);
+                setShowLeaveConfirm(true);
+              }}>
+                退出
+              </button>
+            )}
           </div>
         </div>
       )}

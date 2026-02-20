@@ -10,7 +10,7 @@ export {
   type ClientEventName,
   type ServerEventName,
   type EventName,
-} from './EventNames';
+} from './EventNames.js';
 
 // クライアント→サーバーのイベント型
 export {
@@ -22,7 +22,7 @@ export {
   type EndTurnRequest,
   type LeaveGameRequest,
   type ClientEvents,
-} from './ClientEvents';
+} from './ClientEvents.js';
 
 // サーバー→クライアントのイベント型
 export {
@@ -38,4 +38,4 @@ export {
   type PlayerLeftEvent,
   type GameErrorEvent,
   type ServerEvents,
-} from './ServerEvents';
+} from './ServerEvents.js';

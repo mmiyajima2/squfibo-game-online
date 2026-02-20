@@ -1,4 +1,4 @@
-import { HandDTO } from './HandDTO';
+import { HandDTO } from './HandDTO.js';
 
 /**
  * プレイヤー情報のDTO

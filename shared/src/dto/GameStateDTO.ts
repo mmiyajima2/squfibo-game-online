@@ -1,7 +1,7 @@
-import { GameState } from '../types';
-import { BoardStateDTO } from './BoardStateDTO';
-import { PlayerDTO } from './PlayerDTO';
-import { PositionDTO } from './PositionDTO';
+import { GameState } from '../types/index.js';
+import { BoardStateDTO } from './BoardStateDTO.js';
+import { PlayerDTO } from './PlayerDTO.js';
+import { PositionDTO } from './PositionDTO.js';
 
 /**
  * ゲーム全体の状態を表すDTO

@@ -1,6 +1,6 @@
-import { ComboType } from '../types';
-import { CardDTO } from './CardDTO';
-import { PositionDTO } from './PositionDTO';
+import { ComboType } from '../types/index.js';
+import { CardDTO } from './CardDTO.js';
+import { PositionDTO } from './PositionDTO.js';
 
 /**
  * 役（コンボ）情報のDTO

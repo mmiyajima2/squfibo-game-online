@@ -1,4 +1,8 @@
 import { Link } from 'react-router-dom'
+import zentaiImg from '../assets/zentai.png'
+import tefudaImg from '../assets/tefuda.png'
+import daiyakuImg from '../assets/daiyaku.png'
+import koyakuImg from '../assets/koyaku.png'
 import './Manual.css'
 
 export function Manual() {
@@ -25,9 +29,7 @@ export function Manual() {
           <p>
             物理的なカードとボードで遊ぶこともできますし、Webブラウザでもオンライン対戦ができます。
           </p>
-          <div className="screenshot-placeholder">
-            📸 ここにゲームボード全体のスクリーンショットを配置（ボードにカードが並んでいる様子）
-          </div>
+          <img src={zentaiImg} alt="ゲームボード全体の様子" className="manual-screenshot" />
         </section>
 
         {/* 2. 用意するもの */}
@@ -155,9 +157,7 @@ export function Manual() {
             </div>
           </div>
 
-          <div className="screenshot-placeholder">
-            📸 ここにターン中の画面スクリーンショットを配置（例：手札からカードを選んでボードに置く場面）
-          </div>
+          <img src={tefudaImg} alt="手札からカードを選んでボードに置く場面" className="manual-screenshot" />
         </section>
 
         {/* 5. 役の作り方 */}
@@ -221,9 +221,7 @@ export function Manual() {
             </div>
           </div>
 
-          <div className="screenshot-placeholder">
-            📸 ここに大役（1・4・16）が成立している画面のスクリーンショットを配置
-          </div>
+          <img src={daiyakuImg} alt="大役（1・4・16）が成立している画面" className="manual-screenshot manual-screenshot--small" />
 
           <h3>小役（こやく）― 星★ 1つ獲得</h3>
           <div className="combo-card combo-small">
@@ -238,9 +236,7 @@ export function Manual() {
             </div>
           </div>
 
-          <div className="screenshot-placeholder">
-            📸 ここに小役（同じ数字3枚）が成立している画面のスクリーンショットを配置
-          </div>
+          <img src={koyakuImg} alt="小役（同じ数字3枚）が成立している画面" className="manual-screenshot manual-screenshot--small" />
 
           <div className="info-box">
             <strong>ポイント：</strong> 役を成立させると山札からカードを補充できます。
@@ -274,9 +270,6 @@ export function Manual() {
             <li>役が成立した場合は、宣言ボタンを押して確定する</li>
           </ol>
 
-          <div className="screenshot-placeholder">
-            📸 ここにWebゲームのプレイ中のスクリーンショットを配置（手札・ボード・役宣言ボタンが見える画面）
-          </div>
         </section>
 
       </main>

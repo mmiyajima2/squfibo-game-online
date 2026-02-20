@@ -3,7 +3,7 @@
  * Socket.IOでクライアントから送信されるイベントのペイロード型
  */
 
-import type { PositionDTO } from '../dto/PositionDTO';
+import type { PositionDTO } from '../dto/PositionDTO.js';
 
 /**
  * ゲーム作成リクエスト

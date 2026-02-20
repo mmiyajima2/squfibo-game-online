@@ -2,10 +2,10 @@
  * 基本型定義のエクスポート
  */
 
-export { CardColor } from './CardColor';
-export type { CardValueType } from './CardValue';
-export { VALID_CARD_VALUES, isValidCardValue } from './CardValue';
-export type { Position } from './Position';
-export { isValidPosition, positionEquals } from './Position';
-export { ComboType, getComboRewardStars, getComboDrawCount } from './ComboType';
-export { GameState } from './GameState';
+export { CardColor } from './CardColor.js';
+export type { CardValueType } from './CardValue.js';
+export { VALID_CARD_VALUES, isValidCardValue } from './CardValue.js';
+export type { Position } from './Position.js';
+export { isValidPosition, positionEquals } from './Position.js';
+export { ComboType, getComboRewardStars, getComboDrawCount } from './ComboType.js';
+export { GameState } from './GameState.js';

@@ -3,9 +3,9 @@
  * Socket.IOでサーバーから送信されるイベントのペイロード型
  */
 
-import type { GameStateDTO } from '../dto/GameStateDTO';
-import type { ComboDTO } from '../dto/ComboDTO';
-import type { PositionDTO } from '../dto/PositionDTO';
+import type { GameStateDTO } from '../dto/GameStateDTO.js';
+import type { ComboDTO } from '../dto/ComboDTO.js';
+import type { PositionDTO } from '../dto/PositionDTO.js';
 
 /**
  * ゲーム作成成功イベント

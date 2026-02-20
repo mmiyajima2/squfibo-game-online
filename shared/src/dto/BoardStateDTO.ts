@@ -1,4 +1,4 @@
-import { CardDTO } from './CardDTO';
+import { CardDTO } from './CardDTO.js';
 
 /**
  * 盤面の状態を表すDTO

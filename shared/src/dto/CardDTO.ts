@@ -1,4 +1,4 @@
-import { CardColor, CardValueType } from '../types';
+import { CardColor, CardValueType } from '../types/index.js';
 
 /**
  * カード情報のDTO

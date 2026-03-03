@@ -688,7 +688,7 @@ export function GameContainer({
               <div className="info-display-area">
                 {isBoardFull && placementHistory.length === 0 && isMyTurn && (
                   <div className="board-full-notice">
-                    ⚠️ 盤面が満杯です。盤面のカードのゴミ箱アイコンをクリックして廃棄するか、役を申告してください。
+                    ⚠️ 盤面が満杯です。盤面のカードのゴミ箱アイコンをクリックして廃棄してください。
                   </div>
                 )}
                 {selectedCard && (

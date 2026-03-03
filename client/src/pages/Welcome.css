@@ -129,34 +129,6 @@
   transform: translateY(-1px);
 }
 
-.welcome-ad {
-  margin-top: 1.2rem;
-  animation: fadeIn 1s ease-out 0.8s both;
-}
-
-.ad-placeholder {
-  background: rgba(255, 255, 255, 0.7);
-  border: 2px dashed rgba(0, 0, 0, 0.15);
-  border-radius: 12px;
-  padding: 3rem 2rem;
-  text-align: center;
-  min-height: 250px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.ad-placeholder p {
-  margin: 0.5rem 0;
-  font-size: 1.2rem;
-}
-
-.ad-note {
-  font-size: 0.9rem;
-  opacity: 0.7;
-}
-
 .welcome-footer {
   text-align: center;
   padding: 1rem 1rem;
@@ -216,8 +188,4 @@
     font-size: 1rem;
   }
 
-  .ad-placeholder {
-    min-height: 200px;
-    padding: 2rem 1rem;
-  }
 }

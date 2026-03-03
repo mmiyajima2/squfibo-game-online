@@ -76,12 +76,6 @@ export function Welcome() {
           </Link>
         </section>
 
-        <aside className="welcome-ad">
-          <div className="ad-placeholder">
-            <p>広告エリア</p>
-            <p className="ad-note">（Google AdSense用）</p>
-          </div>
-        </aside>
       </main>
 
       <footer className="welcome-footer">

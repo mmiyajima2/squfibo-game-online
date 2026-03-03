@@ -104,7 +104,7 @@ export function Manual() {
             <li>2人のプレイヤーがそれぞれ山札から <strong>8枚</strong> 引いて手札にします。</li>
             <li>3×3のボードを2人の間に置きます。</li>
             <li>星トークン21個を脇に置きます。</li>
-            <li>どちらが先攻（さきこう）か決めます。</li>
+            <li>どちらが先攻（せんこう）か決めます。</li>
           </ol>
         </section>
 
@@ -217,7 +217,7 @@ export function Manual() {
               報酬：役の3枚をボードから取り除き、山札から <strong>3枚</strong> 手札に引く ＋ <strong>星3つ</strong> 獲得
             </div>
             <div className="combo-example">
-              例：赤の「1」・赤の「4」・赤の「16」がL字型に並んでいれば大役成立！
+              例：青の「1」・青の「4」・青の「16」がL字型に並んでいれば大役成立！
             </div>
           </div>
 
@@ -232,7 +232,7 @@ export function Manual() {
               報酬：役の3枚をボードから取り除き、山札から <strong>1枚</strong> 手札に引く ＋ <strong>星1つ</strong> 獲得
             </div>
             <div className="combo-example">
-              例：青の「9」が横に3枚並んでいれば小役成立！
+              例：赤の「9」が横に3枚並んでいれば小役成立！
             </div>
           </div>
 

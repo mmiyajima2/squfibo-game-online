@@ -97,12 +97,32 @@ export function Welcome() {
           </p>
         </section>
 
+        {/* このゲームで育つ力 */}
+        <section className="welcome-section">
+          <h2 className="section-title">このゲームで育つ力</h2>
+          <p className="section-text">
+            SquFibo は暗算ゲームではありません。<br />
+            盤面全体を見て「気づく力」を育てるゲームです。
+          </p>
+          <p className="section-text">プレイを通して、次のような力が自然と鍛えられます。</p>
+          <ul className="skills-list">
+            <li>盤面全体を俯瞰する力</li>
+            <li>パターンを見抜く力</li>
+            <li>相手の狙いを読む力</li>
+            <li>短期的な得点より長期的な戦略を考える力</li>
+          </ul>
+          <p className="section-text">
+            小学生でも遊べるシンプルなルールですが、<br />
+            大人が遊んでも奥深い読み合いが生まれます。
+          </p>
+        </section>
+
         {/* 開発背景 */}
         <section className="welcome-section">
           <h2 className="section-title">開発背景</h2>
           <p className="section-text">
             エンジニア歴20年目にして、初めて自分でサービスを作って公開しました。
-            AIコーディングを駆使して約50時間で開発・公開まで達成。
+            AIコーディングを駆使して開発・公開まで達成。
             「暗算力ではなく気づく力を育てる」という教育的な価値を持つゲームを、
             無料で・広告のみで運営しています。
           </p>
@@ -134,11 +154,6 @@ export function Welcome() {
       </main>
 
       <footer className="welcome-footer">
-        <p>
-          <a href="mailto:bunbnil@buntozu.com" className="contact-link">
-            お問い合わせ: bunbnil@buntozu.com
-          </a>
-        </p>
         <nav className="footer-nav">
           <Link to="/privacy" className="footer-link">プライバシーポリシー</Link>
           <span className="footer-sep">|</span>

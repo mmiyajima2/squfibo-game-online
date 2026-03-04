@@ -119,6 +119,7 @@ export function Welcome() {
               現在 <span className="room-count-number">{roomCount}</span> / {MAX_ROOMS} 部屋が使用中
             </p>
           )}
+          <p className="room-expiry-info">各部屋の時間制限は13分です</p>
           <a href="https://squfibo.buntozu.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-large">
             CPU対戦版
           </a>
@@ -138,6 +139,15 @@ export function Welcome() {
             お問い合わせ: bunbnil@buntozu.com
           </a>
         </p>
+        <nav className="footer-nav">
+          <Link to="/privacy" className="footer-link">プライバシーポリシー</Link>
+          <span className="footer-sep">|</span>
+          <Link to="/terms" className="footer-link">利用規約</Link>
+          <span className="footer-sep">|</span>
+          <Link to="/about" className="footer-link">運営者情報</Link>
+          <span className="footer-sep">|</span>
+          <Link to="/sitemap" className="footer-link">サイトマップ</Link>
+        </nav>
         <p>&copy; 2026 SquFibo Game</p>
       </footer>
 

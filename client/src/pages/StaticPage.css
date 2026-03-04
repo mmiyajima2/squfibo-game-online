@@ -1,0 +1,177 @@
+/* 静的ページ共通スタイル */
+.static-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+  color: #2c3e50;
+}
+
+.static-header {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  color: white;
+  padding: 1.2rem 1rem;
+  text-align: center;
+}
+
+.static-header-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.static-back {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.static-back:hover {
+  color: white;
+}
+
+.static-header h1 {
+  font-size: 1.8rem;
+  margin: 0;
+  font-weight: bold;
+}
+
+.static-main {
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+  width: 100%;
+}
+
+.static-section {
+  margin-bottom: 2rem;
+}
+
+.static-section h2 {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0 0 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #e0e8f0;
+}
+
+.static-section p {
+  font-size: 0.95rem;
+  color: #4a6080;
+  line-height: 1.8;
+  margin: 0 0 0.6rem;
+}
+
+.static-section p:last-child {
+  margin-bottom: 0;
+}
+
+.static-section ul,
+.static-section ol {
+  padding-left: 1.4rem;
+  margin: 0;
+  color: #4a6080;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.static-section li {
+  margin-bottom: 0.3rem;
+}
+
+.static-contact {
+  display: inline-block;
+  color: #4a90e2;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.static-contact:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+.static-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  color: #4a6080;
+}
+
+.static-info-table th,
+.static-info-table td {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid #e0e8f0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.static-info-table th {
+  width: 9rem;
+  color: #2c3e50;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.static-sitemap-group {
+  margin-bottom: 1.2rem;
+}
+
+.static-sitemap-group h3 {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0 0 0.5rem;
+}
+
+.static-sitemap-list {
+  list-style: none;
+  padding: 0 0 0 1rem;
+  margin: 0;
+}
+
+.static-sitemap-list li {
+  margin-bottom: 0.4rem;
+}
+
+.static-sitemap-list a {
+  color: #4a90e2;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: opacity 0.2s;
+}
+
+.static-sitemap-list a:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+.static-footer {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 0.85rem;
+}
+
+.static-footer p {
+  margin: 0.3rem 0;
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .static-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .static-info-table th {
+    width: 6rem;
+  }
+}

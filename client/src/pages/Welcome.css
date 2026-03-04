@@ -202,6 +202,13 @@
   color: #4a90e2;
 }
 
+.room-expiry-info {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #8a9ab0;
+  margin: 0;
+}
+
 .welcome-links {
   text-align: center;
   margin-bottom: 1.2rem;
@@ -234,6 +241,32 @@
 .welcome-footer p {
   margin: 0.3rem 0;
   opacity: 0.8;
+}
+
+.footer-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.4rem 0;
+}
+
+.footer-link {
+  color: #4a90e2;
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: opacity 0.2s;
+}
+
+.footer-link:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+.footer-sep {
+  color: #aaa;
+  font-size: 0.8rem;
 }
 
 .contact-link {

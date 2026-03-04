@@ -34,13 +34,108 @@
   width: 100%;
 }
 
+.welcome-section {
+  margin-bottom: 2rem;
+  animation: fadeIn 1s ease-out 0.2s both;
+}
+
+.welcome-intro {
+  text-align: center;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0 0 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid #e0e8f0;
+}
+
+.section-text {
+  font-size: 0.95rem;
+  color: #4a6080;
+  line-height: 1.8;
+  margin: 0;
+}
+
 .welcome-tagline {
   text-align: center;
   font-size: 0.95rem;
   color: #4a6080;
-  margin: 0 0 1.2rem;
+  margin: 0 0 0.8rem;
   line-height: 1.6;
-  animation: fadeIn 1s ease-out 0.2s both;
+}
+
+.welcome-description {
+  font-size: 0.95rem;
+  color: #4a6080;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.rules-list {
+  padding-left: 1.4rem;
+  margin: 0;
+  color: #4a6080;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.rules-list li {
+  margin-bottom: 0.4rem;
+}
+
+.rules-list code {
+  font-family: monospace;
+  background: #eef4fb;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #357abd;
+}
+
+.rules-hint {
+  list-style: none;
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background: #f0f6ff;
+  border-left: 3px solid #4a90e2;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.hint-q {
+  font-weight: bold;
+  color: #357abd;
+  margin-right: 0.3em;
+}
+
+.hint-a {
+  font-weight: bold;
+  color: #4a7a5a;
+  margin-right: 0.3em;
+}
+
+.role-label {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.1em 0.5em;
+  border-radius: 4px;
+  margin-right: 0.4em;
+  vertical-align: middle;
+}
+
+.role-major {
+  background: #ffeaa0;
+  color: #7a5c00;
+}
+
+.role-minor {
+  background: #d8f0e0;
+  color: #1a6b3a;
 }
 
 .welcome-actions {

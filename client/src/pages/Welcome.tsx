@@ -33,10 +33,7 @@ export function Welcome() {
   }
 
   const handleRoomCreated = (data: RoomCreatedPayload, playerName: string) => {
-    // ダイアログを閉じる
     setIsDialogOpen(false)
-
-    // /gameページに遷移（query parameterでplayerName, role, roomId, playerIdを渡す）
     const params = new URLSearchParams({
       playerName,
       role: 'host',
@@ -54,11 +51,68 @@ export function Welcome() {
       </header>
 
       <main className="welcome-main">
-        <p className="welcome-tagline">数字と色のカードで役を作り、星をたくさん集めたほうが勝ち！<br />小学生から楽しめる2人対戦ボードゲームです。</p>
 
+        {/* ゲーム紹介 */}
+        <section className="welcome-section welcome-intro">
+          <p className="welcome-tagline">
+            「暗算力」ではなく、<strong>盤面全体を見渡して気づく力</strong>を育てる<br />
+            小学生から楽しめる2人対戦カードゲームです。
+          </p>
+          <p className="welcome-description">
+            3×3の盤面に数字カードを1枚ずつ置いていき、
+            特定の組み合わせ（役）を作って星を集めます。
+            知識量や計算速度よりも、盤面を一目で把握する「気づく力」が勝負のカギです。
+          </p>
+        </section>
+
+        {/* ルール解説（簡易） */}
+        <section className="welcome-section">
+          <h2 className="section-title">ルール（かんたん解説）</h2>
+          <ol className="rules-list">
+            <li>3×3の盤面に交互に数字カードを1枚置く</li>
+            <li>今置いたカードを含む「役」に気づいたら申告して星を獲得！</li>
+            <li>
+              <span className="role-label role-major">大役</span>
+              同じ色のカード <code>1 + 4 + 16</code> → 星3個<br />
+              <span className="role-label role-minor">小役</span>
+              同じ色・同じ数字のカード3枚 → 星1個
+            </li>
+            <li className="rules-hint">
+              <span className="hint-q">Q.</span> なぜ <code>1・4・16</code> という半端な組み合わせ？<br />
+              <span className="hint-a">A.</span> この3つの数字には、ある美しい法則が隠れています。ゲームをしながら探してみてください！
+            </li>
+            <li>星が全部集まるか山札がなくなったらゲーム終了</li>
+            <li>星が多いほうが勝ち！</li>
+          </ol>
+        </section>
+
+        {/* 戦略の面白さ */}
+        <section className="welcome-section">
+          <h2 className="section-title">戦略の面白さ</h2>
+          <p className="section-text">
+            ルールはシンプルでも、盤面の読み合いが奥深い。
+            どこにカードを置けば役が作れるか、どう相手の役を崩すか。
+            盤面が満杯になると相手に「好きなカードを捨てる権利」を与えてしまいます。
+            気づく速さと、盤面を相手にどう渡すかの駆け引きが生む、シンプルながら奥深いゲームです。
+          </p>
+        </section>
+
+        {/* 開発背景 */}
+        <section className="welcome-section">
+          <h2 className="section-title">開発背景</h2>
+          <p className="section-text">
+            エンジニア歴20年目にして、初めて自分でサービスを作って公開しました。
+            AIコーディングを駆使して約50時間で開発・公開まで達成。
+            「暗算力ではなく気づく力を育てる」という教育的な価値を持つゲームを、
+            無料で・広告のみで運営しています。
+          </p>
+        </section>
+
+        {/* プレイはこちら */}
         <section className="welcome-actions">
+          <h2 className="section-title">プレイはこちら</h2>
           <button onClick={handleOpenDialog} className="btn btn-primary btn-large">
-            オンライン版を開始する
+            オンライン対戦版
           </button>
           {roomCount !== null && (
             <p className="room-count-info">
@@ -66,7 +120,7 @@ export function Welcome() {
             </p>
           )}
           <a href="https://squfibo.buntozu.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-large">
-            ブラウザ版で遊ぶ
+            CPU対戦版
           </a>
         </section>
 

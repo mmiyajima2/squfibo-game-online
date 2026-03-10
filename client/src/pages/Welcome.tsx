@@ -102,6 +102,11 @@ export function Welcome() {
             <li>星が全部集まるか山札がなくなったらゲーム終了</li>
             <li>星が多いほうが勝ち！</li>
           </ol>
+          <div className="welcome-links">
+            <Link to="/manual" className="link-manual">
+              📖 ゲームのマニュアルを見る
+            </Link>
+          </div>
         </section>
 
         {/* 戦略の面白さ */}
@@ -146,11 +151,6 @@ export function Welcome() {
           </p>
         </section>
 
-        <section className="welcome-links">
-          <Link to="/manual" className="link-manual">
-            📖 ゲームのマニュアルを見る
-          </Link>
-        </section>
 
       </main>
 

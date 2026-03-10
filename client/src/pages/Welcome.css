@@ -177,17 +177,25 @@
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, #6fabe8 0%, #4a90e2 100%);
+  background: linear-gradient(135deg, #5a9fd4 0%, #2e78c2 100%);
   color: white;
   border: none;
-  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.25);
-  opacity: 0.85;
+  box-shadow: 0 4px 15px rgba(46, 120, 194, 0.35);
 }
 
 .btn-secondary:hover {
   opacity: 1;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(74, 144, 226, 0.35);
+}
+
+.welcome-highlight-img {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  margin: 1rem auto 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
 }
 
 .room-count-info {

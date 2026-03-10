@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CreateRoomDialog } from '../components/CreateRoomDialog'
 import type { RoomCreatedPayload } from '../lib/socket'
+import welcomeHighlight from '../assets/welcome-highlight.png'
 import './Welcome.css'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
@@ -65,6 +66,23 @@ export function Welcome() {
           </p>
         </section>
 
+        {/* プレイボタン群 */}
+        <section className="welcome-actions">
+          <a href="https://squfibo.buntozu.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-large">
+            CPUと対戦する
+          </a>
+          <button onClick={handleOpenDialog} className="btn btn-primary btn-large">
+            友達と対戦する
+          </button>
+          {roomCount !== null && (
+            <p className="room-count-info">
+              現在 <span className="room-count-number">{roomCount}</span> / {MAX_ROOMS} 部屋が使用中
+            </p>
+          )}
+          <p className="room-expiry-info">各部屋の時間制限は13分です</p>
+          <img src={welcomeHighlight} alt="SquFiboゲーム画面" className="welcome-highlight-img" />
+        </section>
+
         {/* ルール解説（簡易） */}
         <section className="welcome-section">
           <h2 className="section-title">ルール（かんたん解説）</h2>
@@ -84,6 +102,11 @@ export function Welcome() {
             <li>星が全部集まるか山札がなくなったらゲーム終了</li>
             <li>星が多いほうが勝ち！</li>
           </ol>
+          <div className="welcome-links">
+            <Link to="/manual" className="link-manual">
+              📖 ゲームのマニュアルを見る
+            </Link>
+          </div>
         </section>
 
         {/* 戦略の面白さ */}
@@ -128,28 +151,6 @@ export function Welcome() {
           </p>
         </section>
 
-        {/* プレイはこちら */}
-        <section className="welcome-actions">
-          <h2 className="section-title">プレイはこちら</h2>
-          <button onClick={handleOpenDialog} className="btn btn-primary btn-large">
-            オンライン対戦版
-          </button>
-          {roomCount !== null && (
-            <p className="room-count-info">
-              現在 <span className="room-count-number">{roomCount}</span> / {MAX_ROOMS} 部屋が使用中
-            </p>
-          )}
-          <p className="room-expiry-info">各部屋の時間制限は13分です</p>
-          <a href="https://squfibo.buntozu.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-large">
-            CPU対戦版
-          </a>
-        </section>
-
-        <section className="welcome-links">
-          <Link to="/manual" className="link-manual">
-            📖 ゲームのマニュアルを見る
-          </Link>
-        </section>
 
       </main>
 

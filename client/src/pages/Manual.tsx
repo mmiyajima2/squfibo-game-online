@@ -217,7 +217,7 @@ export function Manual() {
               報酬：役の3枚をボードから取り除き、山札から <strong>3枚</strong> 手札に引く ＋ <strong>星3つ</strong> 獲得
             </div>
             <div className="combo-example">
-              例：青の「1」・青の「4」・青の「16」がL字型に並んでいれば大役成立！
+              例：青の「1」・青の「16」・青の「4」が横に並んでいれば大役成立！
             </div>
           </div>
 
@@ -232,7 +232,7 @@ export function Manual() {
               報酬：役の3枚をボードから取り除き、山札から <strong>1枚</strong> 手札に引く ＋ <strong>星1つ</strong> 獲得
             </div>
             <div className="combo-example">
-              例：赤の「9」が横に3枚並んでいれば小役成立！
+              例：赤の「9」が横にL字に並んでいれば小役成立！
             </div>
           </div>
 

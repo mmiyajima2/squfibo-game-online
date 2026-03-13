@@ -1040,6 +1040,18 @@ async function handleEndTurn(
       return;
     }
 
+    // 部屋情報を取得（ゲーム終了時にplayerNameが必要なため）
+    const roomInfo = await RoomService.getRoomInfo(payload.roomId);
+    if (!roomInfo) {
+      const error: ErrorPayload = {
+        code: 'ROOM_NOT_FOUND',
+        message: '部屋が見つかりません',
+      };
+      callback?.(error);
+      socket.emit('error', error);
+      return;
+    }
+
     // 現在のプレイヤーのインデックスを取得
     const currentPlayerIndex = gameState.players.findIndex((p) => p.id === payload.playerId);
     const currentPlayer = gameState.players[currentPlayerIndex];
@@ -1180,39 +1192,73 @@ async function handleEndTurn(
     // 部屋の全員にturnEndedイベントを送信
     io.to(payload.roomId).emit('turnEnded', response);
 
-    // ターン変更
-    GameService.changeTurn(gameState);
+    // ゲーム終了判定
+    const endReason = GameService.checkGameEnd(gameState);
 
-    // 新しいターンのプレイヤーの手札が空の場合、山札から1枚自動ドロー
-    const newCurrentPlayerForEndTurn = gameState.players[gameState.currentPlayerIndex];
-    if (newCurrentPlayerForEndTurn.hand.cards.length === 0 && gameState.deckCount > 0) {
-      GameService.drawCardsFromDeck(gameState, newCurrentPlayerForEndTurn, 1);
+    if (endReason) {
+      // ゲーム終了
+      gameState.gameState = GameState.FINISHED;
+      await GameService.saveGameState(payload.roomId, gameState);
+
+      const winnerIndex = GameService.determineWinner(gameState);
+      const winner =
+        winnerIndex !== null
+          ? {
+              playerId: gameState.players[winnerIndex].id,
+              playerName:
+                winnerIndex === 0 ? roomInfo.hostPlayerName : roomInfo.guestPlayerName!,
+              stars: gameState.players[winnerIndex].stars,
+            }
+          : null;
+
+      const finishedPayload: GameFinishedPayload = {
+        gameState,
+        winner,
+        isDraw: winnerIndex === null,
+        reason: endReason,
+      };
+
+      io.to(payload.roomId).emit('gameFinished', finishedPayload);
+
       logger.info(
-        { roomId: payload.roomId, playerId: newCurrentPlayerForEndTurn.id },
-        'Auto-drew card for player with empty hand at turn start'
+        { roomId: payload.roomId, winner: winner?.playerId, reason: endReason },
+        'Game finished'
+      );
+    } else {
+      // ターン変更
+      GameService.changeTurn(gameState);
+
+      // 新しいターンのプレイヤーの手札が空の場合、山札から1枚自動ドロー
+      const newCurrentPlayerForEndTurn = gameState.players[gameState.currentPlayerIndex];
+      if (newCurrentPlayerForEndTurn.hand.cards.length === 0 && gameState.deckCount > 0) {
+        GameService.drawCardsFromDeck(gameState, newCurrentPlayerForEndTurn, 1);
+        logger.info(
+          { roomId: payload.roomId, playerId: newCurrentPlayerForEndTurn.id },
+          'Auto-drew card for player with empty hand at turn start'
+        );
+      }
+
+      await GameService.saveGameState(payload.roomId, gameState);
+
+      const turnPayload: TurnChangedPayload = {
+        currentPlayerIndex: gameState.currentPlayerIndex,
+        currentPlayerId: gameState.players[gameState.currentPlayerIndex].id,
+      };
+
+      io.to(payload.roomId).emit('turnChanged', turnPayload);
+
+      logger.info(
+        { roomId: payload.roomId, currentPlayerIndex: gameState.currentPlayerIndex },
+        'Turn changed'
       );
     }
 
-    await GameService.saveGameState(payload.roomId, gameState);
-
-    const turnPayload: TurnChangedPayload = {
-      currentPlayerIndex: gameState.currentPlayerIndex,
-      currentPlayerId: gameState.players[gameState.currentPlayerIndex].id,
-    };
-
-    io.to(payload.roomId).emit('turnChanged', turnPayload);
-
-    // ゲーム状態更新イベントを送信（ターン切り替え後）
+    // ゲーム状態更新イベントを送信（ターン切り替え後、またはゲーム終了後）
     const updatePayload: GameStateUpdatePayload = {
       gameState,
       updateType: 'turn_changed',
     };
     io.to(payload.roomId).emit('gameStateUpdate', updatePayload);
-
-    logger.info(
-      { roomId: payload.roomId, currentPlayerIndex: gameState.currentPlayerIndex },
-      'Turn changed'
-    );
   } catch (error) {
     logger.error(
       { err: error, roomId: payload.roomId, socketId: socket.id },

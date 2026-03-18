@@ -375,12 +375,14 @@ export function GameContainer({
         // ローカル状態の更新はgameStateUpdateイベントで行われるため、ここでは行わない
         clearPlacementHistory();
         selectCard(null);
+        clearBoardCardSelection();
       }
     } else {
       // オフラインモードの場合はローカル状態を更新
       endTurn();
       clearPlacementHistory();
       selectCard(null);
+      clearBoardCardSelection();
     }
   };
 

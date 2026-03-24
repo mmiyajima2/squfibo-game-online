@@ -270,6 +270,7 @@ export function Manual() {
             <li>役が成立した場合は、宣言ボタンを押して確定する</li>
           </ol>
 
+
         </section>
 
       </main>

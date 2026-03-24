@@ -72,6 +72,7 @@ export function CreateRoomDialog({ isOpen, onClose, onSuccess }: CreateRoomDialo
         </button>
 
         <h2 className="dialog-title">オンライン対戦部屋を作成</h2>
+        <p className="dialog-note">※ 部屋の最大数は 89 部屋、時間制限は 13 分です</p>
         <form onSubmit={handleSubmit} className="dialog-form">
           <div className="form-group">
             <label htmlFor="playerName" className="form-label">

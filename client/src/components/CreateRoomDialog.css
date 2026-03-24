@@ -75,10 +75,16 @@
 
 /* ダイアログタイトル */
 .dialog-title {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 0.4rem 0;
   font-size: 1.5rem;
   font-weight: 600;
   color: #333;
+}
+
+.dialog-note {
+  margin: 0 0 1.2rem 0;
+  font-size: 0.8rem;
+  color: #8a9ab0;
 }
 
 /* フォーム */

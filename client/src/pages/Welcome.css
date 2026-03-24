@@ -20,11 +20,6 @@
   letter-spacing: 0.05em;
 }
 
-.welcome-subtitle {
-  font-size: 1.2rem;
-  margin: 0.3rem 0 0;
-  opacity: 0.9;
-}
 
 .welcome-main {
   flex: 1;
@@ -189,6 +184,13 @@
   box-shadow: 0 6px 20px rgba(74, 144, 226, 0.35);
 }
 
+.btn-sub {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.85;
+  margin-top: 0.2rem;
+}
+
 .welcome-highlight-img {
   display: block;
   width: 100%;
@@ -196,6 +198,14 @@
   margin: 1rem auto 0;
   border-radius: 10px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.room-meta-info {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1rem;
 }
 
 .room-count-info {
@@ -315,9 +325,6 @@
     font-size: 2.2rem;
   }
 
-  .welcome-subtitle {
-    font-size: 1rem;
-  }
 
   .btn-large {
     padding: 0.9rem 1.5rem;

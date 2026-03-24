@@ -103,6 +103,12 @@
   margin: 0.6rem 0;
 }
 
+.manual-note {
+  font-size: 0.85rem;
+  color: #8a9ab0;
+  margin-top: 0.8rem;
+}
+
 /* スクリーンショット画像 */
 .manual-screenshot {
   width: 100%;

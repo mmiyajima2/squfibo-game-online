@@ -1,29 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CreateRoomDialog } from '../components/CreateRoomDialog'
 import type { RoomCreatedPayload } from '../lib/socket'
 import welcomeHighlight from '../assets/welcome-highlight.png'
 import './Welcome.css'
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
-const MAX_ROOMS = 89
-
 export function Welcome() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [roomCount, setRoomCount] = useState<number | null>(null)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const fetchRoomCount = () => {
-      fetch(`${SERVER_URL}/api/rooms/count`)
-        .then(res => res.json())
-        .then(data => setRoomCount(data.count))
-        .catch(() => {})
-    }
-    fetchRoomCount()
-    const interval = setInterval(fetchRoomCount, 30000)
-    return () => clearInterval(interval)
-  }, [])
 
   const handleOpenDialog = () => {
     setIsDialogOpen(true)
@@ -48,7 +32,6 @@ export function Welcome() {
     <div className="welcome-container">
       <header className="welcome-header">
         <h1 className="welcome-title">SquFibo</h1>
-        <p className="welcome-subtitle">すくふぃぼ</p>
       </header>
 
       <main className="welcome-main">
@@ -69,17 +52,12 @@ export function Welcome() {
         {/* プレイボタン群 */}
         <section className="welcome-actions">
           <a href="https://squfibo.buntozu.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-large">
-            CPUと対戦する
+            今すぐ1人で遊ぶ（5分）
+            <span className="btn-sub">ログイン不要</span>
           </a>
           <button onClick={handleOpenDialog} className="btn btn-primary btn-large">
             友達と対戦する
           </button>
-          {roomCount !== null && (
-            <p className="room-count-info">
-              現在 <span className="room-count-number">{roomCount}</span> / {MAX_ROOMS} 部屋が使用中
-            </p>
-          )}
-          <p className="room-expiry-info">各部屋の時間制限は13分です</p>
           <img src={welcomeHighlight} alt="SquFiboゲーム画面" className="welcome-highlight-img" />
         </section>
 
